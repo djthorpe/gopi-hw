@@ -19,7 +19,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 
 	// Modules
-	_ "github.com/djthorpe/gopi/sys/hw/darwin"
+	_ "github.com/djthorpe/gopi-hw/sys/hw"
 	_ "github.com/djthorpe/gopi/sys/logger"
 )
 
