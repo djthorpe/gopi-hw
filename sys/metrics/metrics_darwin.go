@@ -10,8 +10,11 @@
 package metrics
 
 import (
+	"bytes"
+	"encoding/binary"
 	"syscall"
 	"time"
+	"unsafe"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -46,5 +49,30 @@ func (this *metrics) LoadAverage() (float64, float64, float64) {
 		return 0, 0, 0
 	} else {
 		return float64(avg[0]), float64(avg[1]), float64(avg[2])
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// GET SYSTEM INFO
+
+// Generic Sysctl buffer unmarshalling
+// from https://github.com/cloudfoundry/gosigar/blob/master/sigar_darwin.go
+func sysctlbyname(name string, data interface{}) error {
+	if val, err := syscall.Sysctl(name); err != nil {
+		return err
+	} else {
+		buf := []byte(val)
+		switch v := data.(type) {
+		case *uint64:
+			*v = *(*uint64)(unsafe.Pointer(&buf[0]))
+			return nil
+		case []byte:
+			for i := 0; i < len(val) && i < len(v); i++ {
+				v[i] = val[i]
+			}
+			return nil
+		}
+		bbuf := bytes.NewBuffer([]byte(val))
+		return binary.Read(bbuf, binary.LittleEndian, data)
 	}
 }
