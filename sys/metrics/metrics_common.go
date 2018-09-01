@@ -28,6 +28,7 @@ type metrics struct {
 	metrics []*gopi.Metric
 	cases   []reflect.SelectCase
 	changed chan struct{}
+	done    chan struct{}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -43,7 +44,7 @@ var (
 
 // Open creates a new metrics object, returns error if not possible
 func (config Metrics) Open(log gopi.Logger) (gopi.Driver, error) {
-	log.Debug("<metrics.linux>Open{}")
+	log.Debug("<metrics>Open{}")
 
 	// create new driver
 	this := new(metrics)
@@ -54,10 +55,14 @@ func (config Metrics) Open(log gopi.Logger) (gopi.Driver, error) {
 	// accept metrics
 	this.cases = make([]reflect.SelectCase, 1)
 	this.changed = make(chan struct{})
+	this.done = make(chan struct{})
 	this.cases[0] = reflect.SelectCase{
 		Dir:  reflect.SelectRecv,
 		Chan: reflect.ValueOf(this.changed),
 	}
+
+	// Start goroutine to accept incoming metrics
+	go this.goGatherMetrics()
 
 	// return driver
 	return this, nil
@@ -65,10 +70,21 @@ func (config Metrics) Open(log gopi.Logger) (gopi.Driver, error) {
 
 // Close connection
 func (this *metrics) Close() error {
-	this.log.Debug("<metrics.linux>Close{}")
+	this.log.Debug("<metrics>Close{}")
+
+	// Close changed channel - which ends goGatherMetrics
+	if this.done != nil {
+		for _, c := range this.cases {
+			c.Chan.Close()
+		}
+		<-this.done
+	}
 
 	// Release resources
 	this.metrics = nil
+	this.cases = nil
+	this.changed = nil
+	this.done = nil
 
 	return nil
 }
@@ -98,8 +114,16 @@ func (this *metrics) NewMetricUint(metric_type gopi.MetricType, metric_rate gopi
 	}
 	this.metrics = append(this.metrics, metric)
 
+	// Create channel for metrics
+	c := make(chan uint)
+	this.cases = append(this.cases, reflect.SelectCase{
+		Dir:  reflect.SelectRecv,
+		Chan: reflect.ValueOf(c),
+	})
+	this.changed <- gopi.DONE
+
 	// Return channel for metrics
-	return nil, nil
+	return c, nil
 }
 
 // Metrics returns all metrics of a particular type, or METRIC_TYPE_NONE for all metrics
@@ -120,4 +144,40 @@ func (this *metrics) String() string {
 	var l [3]float64
 	l[0], l[1], l[2] = this.LoadAverage()
 	return fmt.Sprintf("<metrics>{ uptime_host=%v uptime_app=%v load_average=%v metrics=%v }", this.UptimeHost(), this.UptimeHost(), l, this.metrics)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// PRIVATE METHODS
+
+// goGatherMetrics accepts incoming metric values
+func (this *metrics) goGatherMetrics() {
+	this.log.Debug2("<metrics>goGatherMetrics started")
+FOR_LOOP:
+	for {
+		// select cases
+		i, v, ok := reflect.Select(this.cases)
+		if i == 0 && ok == true {
+			// We need to reload the cases
+		} else if i == 0 && ok == false {
+			// Closed changed channel, so end
+			break FOR_LOOP
+		} else if ok == true {
+			if err := this.recordMetric(i, v); err != nil {
+				this.log.Warn("<metrics>goGatherMetrics: %v", err)
+			}
+		}
+	}
+	this.log.Debug2("<metrics>goGatherMetrics ended")
+	close(this.done)
+}
+
+// recordMetric records a metric
+func (this *metrics) recordMetric(i int, v reflect.Value) error {
+	// A value needs to be recorded
+	if i > len(this.metrics) {
+		return gopi.ErrBadParameter
+	}
+	metric := this.metrics[i-1]
+	fmt.Printf("m=%v v=%v\n", metric, v)
+	return nil
 }

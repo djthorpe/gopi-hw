@@ -70,6 +70,7 @@ func (config Hardware) Open(logger gopi.Logger) (gopi.Driver, error) {
 		return nil, err
 	} else {
 		this.done = make(chan struct{})
+		// record the temperature every minute
 		go this.recordTemperature(core_temp_chan, time.Minute)
 	}
 

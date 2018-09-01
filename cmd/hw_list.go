@@ -77,6 +77,9 @@ func mainLoop(app *gopi.AppInstance, done chan<- struct{}) error {
 
 	table.Render()
 
+	app.Logger.Info("Waiting for CTRL+C")
+	app.WaitForSignal()
+
 	return nil
 }
 
