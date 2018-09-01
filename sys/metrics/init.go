@@ -1,4 +1,4 @@
-// +build rpi
+// +build linux darwin
 
 /*
   Go Language Raspberry Pi Interface
@@ -9,7 +9,7 @@
   For Licensing and Usage information, please see LICENSE.md
 */
 
-package hw
+package metrics
 
 import (
 	// Frameworks
@@ -20,17 +20,12 @@ import (
 // INIT
 
 func init() {
-	// Register hardware
+	// Register Metrics module
 	gopi.RegisterModule(gopi.Module{
-		Name:     "hw/rpi",
-		Type:     gopi.MODULE_TYPE_HARDWARE,
-		Requires: []string{"metrics"},
+		Name: "metrics",
+		Type: gopi.MODULE_TYPE_OTHER,
 		New: func(app *gopi.AppInstance) (gopi.Driver, error) {
-			config := Hardware{}
-			if metrics, ok := app.ModuleInstance("metrics").(gopi.Metrics); ok {
-				config.Metrics = metrics
-			}
-			return gopi.Open(config, app.Logger)
+			return gopi.Open(Metrics{}, app.Logger)
 		},
 	})
 }
