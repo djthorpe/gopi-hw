@@ -1,3 +1,5 @@
+// +build rpi
+
 /*
   Go Language Raspberry Pi Interface
   (c) Copyright David Thorpe 2016-2018
@@ -20,7 +22,7 @@ import (
 func init() {
 	// Register hardware
 	gopi.RegisterModule(gopi.Module{
-		Name: "hw/darwin",
+		Name: "hw/rpi",
 		Type: gopi.MODULE_TYPE_HARDWARE,
 		New: func(app *gopi.AppInstance) (gopi.Driver, error) {
 			return gopi.Open(Hardware{}, app.Logger)
