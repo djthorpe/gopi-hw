@@ -1,0 +1,19 @@
+syntax = "proto3";
+package gopi;
+option go_package = "metrics";
+
+import "google/protobuf/duration.proto";
+
+/////////////////////////////////////////////////////////////////////
+// SERVICES
+
+service Metrics {
+    // Simple ping method to show service is "up"
+    rpc Ping (EmptyRequest) returns (EmptyReply);
+}
+
+/////////////////////////////////////////////////////////////////////
+// EMPTY REQUEST AND REPLY
+
+message EmptyRequest { }
+message EmptyReply { }

@@ -1,0 +1,32 @@
+syntax = "proto3";
+package gopi;
+option go_package = "hw";
+
+import "google/protobuf/duration.proto";
+
+/////////////////////////////////////////////////////////////////////
+// SERVICES
+
+service Hardware {
+    // Simple ping method to show service is "up"
+    rpc Ping (EmptyRequest) returns (EmptyReply);
+
+    // Return information about the hardware
+    rpc Info (EmptyRequest) returns (InfoReply);
+}
+
+/////////////////////////////////////////////////////////////////////
+// EMPTY REQUEST AND REPLY
+
+message EmptyRequest { }
+message EmptyReply { }
+
+/////////////////////////////////////////////////////////////////////
+// INFORMATION REPLY
+
+message InfoReply {
+    string name = 1;
+    string serial_number = 2;
+    uint32 number_of_displays = 3;
+    string hostname = 4;
+}
