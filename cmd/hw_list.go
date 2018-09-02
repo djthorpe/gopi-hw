@@ -71,7 +71,7 @@ func mainLoop(app *gopi.AppInstance, done chan<- struct{}) error {
 
 		// Other metrics
 		for _, metric := range metrics.Metrics(gopi.METRIC_TYPE_NONE) {
-			table.Append([]string{metric.Name, fmt.Sprintf("%v%v", metric.Value, metric.Type)})
+			table.Append([]string{metric.Name(), fmt.Sprintf("%v%v", metric.FloatValue(), metric.Unit())})
 		}
 	}
 

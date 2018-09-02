@@ -66,12 +66,12 @@ func (config Hardware) Open(logger gopi.Logger) (gopi.Driver, error) {
 	}
 
 	// Get channel for updating core CPU temperature
-	if core_temp_chan, err := config.Metrics.NewMetricUint(gopi.METRIC_TYPE_CELCIUS, gopi.METRIC_RATE_HOUR, "core_temp"); err != nil {
+	if core_temp_chan, err := config.Metrics.NewMetricFloat64(gopi.METRIC_TYPE_CELCIUS, gopi.METRIC_RATE_HOUR, "core_temp"); err != nil {
 		return nil, err
 	} else {
 		this.done = make(chan struct{})
 		// record the temperature every minute
-		go this.recordTemperature(core_temp_chan, time.Minute)
+		go this.recordTemperature(core_temp_chan, time.Second * 5)
 	}
 
 	// Success
@@ -151,7 +151,7 @@ func (this *hardware) String() string {
 ////////////////////////////////////////////////////////////////////////////////
 // PRIVATE METHODS
 
-func (this *hardware) recordTemperature(core_temp_chan chan<- uint, delta time.Duration) {
+func (this *hardware) recordTemperature(core_temp_chan chan<- float64, delta time.Duration) {
 	this.log.Debug2("recordTemperature started with delta=%v", delta)
 	interval := time.NewTimer(0)
 FOR_LOOP:
@@ -161,7 +161,7 @@ FOR_LOOP:
 			if cpu_temp, err := rpi.VCGetCoreTemperatureCelcius(); err != nil {
 				this.log.Error("recordTemperature: %v", err)
 			} else if core_temp_chan != nil {
-				core_temp_chan <- uint(cpu_temp)
+				core_temp_chan <- cpu_temp
 			}
 			interval.Reset(delta)
 		case <-this.done:
