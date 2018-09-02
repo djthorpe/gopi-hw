@@ -13,10 +13,13 @@ import (
 	"fmt"
 	"os"
 
+	// Frameworks
 	"github.com/djthorpe/gopi"
-	_ "github.com/djthorpe/gopi/sys/hw/linux"
-	_ "github.com/djthorpe/gopi/sys/logger"
 	"github.com/olekukonko/tablewriter"
+
+	// Modules
+	_ "github.com/djthorpe/gopi-hw/sys/spi"
+	_ "github.com/djthorpe/gopi/sys/logger"
 )
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -19,8 +19,12 @@ import (
 	"github.com/olekukonko/tablewriter"
 
 	// Modules
+	_ "github.com/djthorpe/gopi-hw/sys/gpio"
 	_ "github.com/djthorpe/gopi-hw/sys/hw"
+	_ "github.com/djthorpe/gopi-hw/sys/i2c"
+	_ "github.com/djthorpe/gopi-hw/sys/lirc"
 	_ "github.com/djthorpe/gopi-hw/sys/metrics"
+	_ "github.com/djthorpe/gopi-hw/sys/spi"
 	_ "github.com/djthorpe/gopi/sys/logger"
 )
 
@@ -55,7 +59,6 @@ func mainLoop(app *gopi.AppInstance, done chan<- struct{}) error {
 	table.Append([]string{"i2c", moduleName("i2c")})
 	table.Append([]string{"spi", moduleName("spi")})
 	table.Append([]string{"lirc", moduleName("lirc")})
-	table.Append([]string{"display", moduleName("display")})
 
 	// Metrics
 	if metrics := app.ModuleInstance("metrics").(gopi.Metrics); metrics != nil {
@@ -77,15 +80,12 @@ func mainLoop(app *gopi.AppInstance, done chan<- struct{}) error {
 
 	table.Render()
 
-	app.Logger.Info("Waiting for CTRL+C")
-	app.WaitForSignal()
-
 	return nil
 }
 
 func main() {
 	// Create the configuration, load the gpio instance
-	config := gopi.NewAppConfig("hw", "metrics")
+	config := gopi.NewAppConfig("hw", "metrics", "i2c", "gpio")
 
 	// Run the command line tool
 	os.Exit(gopi.CommandLineTool(config, mainLoop))
