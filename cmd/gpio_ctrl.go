@@ -20,7 +20,9 @@ import (
 	"github.com/olekukonko/tablewriter"
 
 	// Modules
-	"./gpio_sys"
+	_ "github.com/djthorpe/gopi-hw/sys/gpio"
+	_ "github.com/djthorpe/gopi-hw/sys/hw"
+	_ "github.com/djthorpe/gopi-hw/sys/metrics"
 	_ "github.com/djthorpe/gopi/sys/logger"
 )
 
@@ -166,7 +168,7 @@ func mainLoop(app *gopi.AppInstance, done chan<- struct{}) error {
 
 func main() {
 	// Create the configuration, load the gpio instance
-	config := gopi.NewAppConfig(gpio_sys.MODULE_NAMES)
+	config := gopi.NewAppConfig("gpio")
 	config.AppFlags.FlagString("low", "", "Comma-separated list of pins to set to low")
 	config.AppFlags.FlagString("high", "", "Comma-separated list of pins to set to high")
 	config.AppFlags.FlagString("in", "", "Comma-separated list of pins to set to input")

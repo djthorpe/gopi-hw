@@ -10,15 +10,15 @@
 package main
 
 import (
-	// Frameworks
 	"errors"
 	"fmt"
 	"os"
 
+	// Frameworks
 	gopi "github.com/djthorpe/gopi"
 
 	// Modules
-	_ "github.com/djthorpe/gopi/sys/hw/linux"
+	_ "github.com/djthorpe/gopi-hw/sys/lirc"
 	_ "github.com/djthorpe/gopi/sys/logger"
 )
 

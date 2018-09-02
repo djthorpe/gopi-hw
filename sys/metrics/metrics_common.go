@@ -25,7 +25,7 @@ type Metrics struct{}
 
 type metrics struct {
 	log     gopi.Logger
-	metrics []*gopi.Metric
+	metrics []*metric
 	cases   []reflect.SelectCase
 	changed chan struct{}
 	done    chan struct{}
@@ -49,10 +49,10 @@ func (config Metrics) Open(log gopi.Logger) (gopi.Driver, error) {
 	// create new driver
 	this := new(metrics)
 	this.log = log
-	this.metrics = make([]*gopi.Metric, 0)
 
 	// The array of channels on which we can
 	// accept metrics
+	this.metrics = make([]*metric, 0)
 	this.cases = make([]reflect.SelectCase, 1)
 	this.changed = make(chan struct{})
 	this.done = make(chan struct{})
@@ -90,7 +90,7 @@ func (this *metrics) Close() error {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// RETURN UPTIME
+// RETURN UPTIME FOR THE APPLICATION
 
 func (this *metrics) UptimeApp() time.Duration {
 	return time.Since(ts)
@@ -99,20 +99,14 @@ func (this *metrics) UptimeApp() time.Duration {
 ////////////////////////////////////////////////////////////////////////////////
 // METRIC METHODS
 
-// Return metric channel, which when you send a value on it will store the metric
+// NewMetricUint returns metric channel, which when you send a value on it will store the metric
 func (this *metrics) NewMetricUint(metric_type gopi.MetricType, metric_rate gopi.MetricRate, name string) (chan<- uint, error) {
-	// Check incoming parameters
-	if metric_type == gopi.METRIC_TYPE_NONE || name == "" {
+	// Create a new metric structure and append to list of metrics
+	if m := NewMetric(name, metric_rate, metric_type); m == nil {
 		return nil, gopi.ErrBadParameter
+	} else {
+		this.metrics = append(this.metrics, m)
 	}
-
-	// Create a new metric structure and append
-	metric := &gopi.Metric{
-		Rate: metric_rate,
-		Type: metric_type,
-		Name: name,
-	}
-	this.metrics = append(this.metrics, metric)
 
 	// Create channel for metrics
 	c := make(chan uint)
@@ -126,11 +120,32 @@ func (this *metrics) NewMetricUint(metric_type gopi.MetricType, metric_rate gopi
 	return c, nil
 }
 
+// NewMetricFloat64 returns metric channel, which when you send a value on it will store the metric
+func (this *metrics) NewMetricFloat64(metric_type gopi.MetricType, metric_rate gopi.MetricRate, name string) (chan<- float64, error) {
+	// Create a new metric structure and append to list of metrics
+	if m := NewMetric(name, metric_rate, metric_type); m == nil {
+		return nil, gopi.ErrBadParameter
+	} else {
+		this.metrics = append(this.metrics, m)
+	}
+
+	// Create channel for metrics
+	c := make(chan float64)
+	this.cases = append(this.cases, reflect.SelectCase{
+		Dir:  reflect.SelectRecv,
+		Chan: reflect.ValueOf(c),
+	})
+	this.changed <- gopi.DONE
+
+	// Return channel for metrics
+	return c, nil
+}
+
 // Metrics returns all metrics of a particular type, or METRIC_TYPE_NONE for all metrics
-func (this *metrics) Metrics(metric_type gopi.MetricType) []*gopi.Metric {
-	metrics := make([]*gopi.Metric, 0, len(this.metrics))
+func (this *metrics) Metrics(metric_type gopi.MetricType) []gopi.Metric {
+	metrics := make([]gopi.Metric, 0, len(this.metrics))
 	for _, metric := range this.metrics {
-		if metric_type == gopi.METRIC_TYPE_NONE || metric_type == metric.Type {
+		if metric_type == gopi.METRIC_TYPE_NONE || metric.Type() == metric_type {
 			metrics = append(metrics, metric)
 		}
 	}
@@ -171,13 +186,16 @@ FOR_LOOP:
 	close(this.done)
 }
 
-// recordMetric records a metric
+// recordMetric records a metric and returns an error if the
+// value could not be recorded
 func (this *metrics) recordMetric(i int, v reflect.Value) error {
-	// A value needs to be recorded
-	if i > len(this.metrics) {
+	if i < 1 || i > len(this.metrics) {
 		return gopi.ErrBadParameter
 	}
-	metric := this.metrics[i-1]
-	fmt.Printf("m=%v v=%v\n", metric, v)
-	return nil
+	if err := this.metrics[i-1].RecordValue(v, time.Now()); err != nil {
+		return err
+	} else {
+		this.log.Debug("RecordValue: %v: value=%v mean=%v", this.metrics[i-1].Name(), v, this.metrics[i-1].FloatValue())
+		return nil
+	}
 }
