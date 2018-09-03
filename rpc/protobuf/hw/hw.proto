@@ -2,8 +2,6 @@ syntax = "proto3";
 package gopi;
 option go_package = "hw";
 
-import "google/protobuf/duration.proto";
-
 /////////////////////////////////////////////////////////////////////
 // SERVICES
 

@@ -68,16 +68,46 @@ func (this *service) Close() error {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Stringify
+// STRINGIFY
 
 func (this *service) String() string {
 	return fmt.Sprintf("grpc.service.metrics{}")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Ping method
+// PING
 
 func (this *service) Ping(ctx context.Context, _ *pb.EmptyRequest) (*pb.EmptyReply, error) {
 	this.log.Debug2("<grpc.service.metrics>Ping{ }")
 	return &pb.EmptyReply{}, nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// UPTIME
+
+func (this *service) Uptime(ctx context.Context, _ *pb.EmptyRequest) (*pb.UptimeReply, error) {
+	this.log.Debug2("<grpc.service.metrics>Uptime{ }")
+	return &pb.UptimeReply{
+	// TODO
+	}, gopi.ErrNotImplemented
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// LOAD AVERAGES
+
+func (this *service) LoadAverage(ctx context.Context, _ *pb.EmptyRequest) (*pb.LoadAverageReply, error) {
+	this.log.Debug2("<grpc.service.metrics>LoadAverage{ }")
+	return &pb.LoadAverageReply{
+	// TODO
+	}, gopi.ErrNotImplemented
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// METRICS
+
+func (this *service) Metrics(ctx context.Context, r *pb.MetricsRequest) (*pb.MetricsReply, error) {
+	this.log.Debug2("<grpc.service.metrics>Metrics{ }")
+	return &pb.MetricsReply{
+	// TODO
+	}, gopi.ErrNotImplemented
 }
