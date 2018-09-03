@@ -10,6 +10,15 @@ import "google/protobuf/duration.proto";
 service Metrics {
     // Simple ping method to show service is "up"
     rpc Ping (EmptyRequest) returns (EmptyReply);
+
+    // Return uptime for application and host
+    rpc Uptime(EmptyRequest) returns (UptimeReply);
+
+    // Return load averages (TODO: as a stream)
+    rpc LoadAverage(EmptyRequest) returns (LoadAverageReply);
+
+    // Return all metrics (TODO: as a stream)
+    rpc Metrics(MetricsRequest) returns (MetricsReply);
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -17,3 +26,59 @@ service Metrics {
 
 message EmptyRequest { }
 message EmptyReply { }
+
+/////////////////////////////////////////////////////////////////////
+// ENUMS
+
+enum MetricType {
+	METRIC_TYPE_NONE = 0x0000;
+	METRIC_TYPE_PURE = 0x0001;
+	METRIC_TYPE_CELCIUS = 0x0002;
+}
+
+enum MetricRate {
+	METRIC_RATE_NONE = 0x0000;
+	METRIC_RATE_MINUTE = 0x0001;
+	METRIC_RATE_HOUR = 0x0002;
+	METRIC_RATE_DAY = 0x0003;
+}
+
+/////////////////////////////////////////////////////////////////////
+// METRICS REPLY
+
+message MetricsRequest {
+    MetricType metric_type = 1;
+}
+
+message MetricsReply {
+    repeated Metric metric = 1;
+}
+
+/////////////////////////////////////////////////////////////////////
+// UPTIME REPLY
+
+message UptimeReply {
+    google.protobuf.Duration uptime_host = 1;
+    google.protobuf.Duration uptime_service = 2;
+}
+
+/////////////////////////////////////////////////////////////////////
+// LOAD AVERAGE REPLY
+
+message LoadAverageReply {
+    float loadaverage_1m = 1;
+    float loadaverage_5m = 2;
+    float loadaverage_15m = 3;
+}
+
+/////////////////////////////////////////////////////////////////////
+// METRIC
+
+message Metric {
+    string name = 1;
+    MetricType type = 2;
+    MetricRate rate = 3;
+    string unit = 4;
+    uint64 uint_value = 5;
+    double float_value = 6;
+}
