@@ -20,7 +20,7 @@ import (
 	// Frameworks
 	"github.com/djthorpe/gopi"
 	"github.com/djthorpe/gopi-hw/sys/filepoll"
-	evt "github.com/djthorpe/gopi/util/event"
+	"github.com/djthorpe/gopi/util/event"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -35,17 +35,19 @@ type LIRC struct {
 }
 
 type lirc struct {
-	dev         *os.File
-	log         gopi.Logger
-	filepoll    filepoll.FilePollInterface
-	lock        sync.Mutex
-	subscribers *evt.PubSub
+	dev      *os.File
+	log      gopi.Logger
+	filepoll filepoll.FilePollInterface
+	lock     sync.Mutex
 
 	// features
 	features lirc_feature
 
 	// modes
 	rcv_mode, send_mode gopi.LIRCMode
+
+	// publisher
+	event.Publisher
 }
 
 type lirc_feature uint32
@@ -151,9 +153,6 @@ func (config LIRC) Open(log gopi.Logger) (gopi.Driver, error) {
 		return nil, err
 	}
 
-	// Subscribers
-	this.subscribers = evt.NewPubSub(0)
-
 	// return driver
 	return this, nil
 }
@@ -167,7 +166,7 @@ func (this *lirc) Close() error {
 	defer this.lock.Unlock()
 
 	// Close subscriber channels
-	this.subscribers.Close()
+	this.Publisher.Close()
 
 	// Unwatch device
 	if err := this.filepoll.Unwatch(this.dev); err != nil {
@@ -183,7 +182,6 @@ func (this *lirc) Close() error {
 
 	// Blank out
 	this.filepoll = nil
-	this.subscribers = nil
 
 	return nil
 }
@@ -353,25 +351,6 @@ func (this *lirc) SetRcvDutyCycle(value uint32) error {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// PUBSUB
-
-// Subscribe to events emitted. Returns unique subscriber
-// identifier and channel on which events are emitted
-func (this *lirc) Subscribe() <-chan gopi.Event {
-	return this.subscribers.Subscribe()
-}
-
-// Unsubscribe from events emitted
-func (this *lirc) Unsubscribe(subscriber <-chan gopi.Event) {
-	this.subscribers.Unsubscribe(subscriber)
-}
-
-// Emit an event to subscribers
-func (this *lirc) Emit(value uint32) {
-	this.subscribers.Emit(&lirc_event{driver: this, value: value})
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // EVENTS INTERFACE
 
 func (this *lirc_event) Name() string {
@@ -471,7 +450,7 @@ func (this *lirc) lircReceive(dev *os.File, mode filepoll.FilePollMode) {
 	} else if err != nil {
 		this.log.Error("lircReceive: %v", err)
 	} else {
-		this.Emit(buf[0])
+		this.Emit(&lirc_event{driver: this, value: buf[0]})
 	}
 }
 
