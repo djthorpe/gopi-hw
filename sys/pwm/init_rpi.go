@@ -19,9 +19,8 @@ import (
 
 func init() {
 	gopi.RegisterModule(gopi.Module{
-		Name:     "hw/pwm/pi-blaster",
-		Type:     gopi.MODULE_TYPE_PWM,
-		Requires: []string{"gpio"},
+		Name: "hw/pwm/pi-blaster",
+		Type: gopi.MODULE_TYPE_PWM,
 		Config: func(config *gopi.AppConfig) {
 			config.AppFlags.FlagString("pi-blaster.fifo", "/dev/pi-blaster", "Path to FIFO")
 			config.AppFlags.FlagString("pi-blaster.exec", "/usr/sbin/pi-blaster", "Path to executable")

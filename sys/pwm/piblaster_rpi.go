@@ -28,6 +28,7 @@ import (
 // TYPES
 
 type PiBlaster struct {
+	GPIO gopi.GPIO
 	FIFO string
 	Exec string
 }
@@ -40,6 +41,7 @@ type piblaster struct {
 	samples    uint
 	min_period time.Duration
 	max_period time.Duration
+	pins       map[gopi.GPIOPin]float32
 }
 
 var (
@@ -53,12 +55,17 @@ var (
 func (config PiBlaster) Open(log gopi.Logger) (gopi.Driver, error) {
 	log.Debug("<sys.hw.PWM.PiBlaster>Open{ fifo='%v' exec='%v' }", config.FIFO, config.Exec)
 
-	// create new GPIO driver
+	// create new PWM driver
 	this := new(piblaster)
 
 	// Set logging & device
 	this.log = log
 	this.fifo = config.FIFO
+
+	// Check for fifo
+	if this.fifo == "" {
+		return nil, gopi.ErrBadParameter
+	}
 
 	// Open FIFO
 	if stat, err := os.Stat(this.fifo); os.IsNotExist(err) == true {
@@ -80,6 +87,14 @@ func (config PiBlaster) Open(log gopi.Logger) (gopi.Driver, error) {
 		return nil, err
 	}
 
+	// Check parameters
+	if this.period == 0 {
+		return nil, fmt.Errorf("Unable to determine PWM frequency")
+	}
+
+	// Set up pins
+	this.pins = make(map[gopi.GPIOPin]float32)
+
 	// success
 	return this, nil
 }
@@ -87,6 +102,13 @@ func (config PiBlaster) Open(log gopi.Logger) (gopi.Driver, error) {
 // Close PiBlaster object
 func (this *piblaster) Close() error {
 	this.log.Debug("<sys.hw.PWM.PiBlaster>Close{ fifo='%v' }", this.fifo)
+
+	// Release pins
+	for _, pin := range this.all_pins() {
+		if err := this.Release(pin); err != nil {
+			return err
+		}
+	}
 
 	// Release resources
 	if err := this.fh.Close(); err != nil {
@@ -100,26 +122,81 @@ func (this *piblaster) Close() error {
 // STRINGIFY
 
 func (this *piblaster) String() string {
-	return fmt.Sprintf("<sys.hw.PWM.PiBlaster>{ fifo='%v' period=%v min_period=%v max_period=%v samples=%v }", this.fifo, this.period,this.min_period,this.max_period,this.samples)
+	return fmt.Sprintf("<sys.hw.PWM.PiBlaster>{ fifo='%v' pins=%v period=%v min_period=%v max_period=%v samples=%v }", this.fifo, this.all_pins(), this.period, this.min_period, this.max_period, this.samples)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // IMPLEMENTATION
 
-func (this *piblaster) Frequency(gopi.GPIOPin) (float32, error) {
-	return 0, gopi.ErrNotImplemented
+func (this *piblaster) Pins() []gopi.GPIOPin {
+	return this.all_pins()
 }
 
-func (this *piblaster) SetFrequency(float32, gopi.GPIOPin) error {
-	return gopi.ErrNotImplemented
+func (this *piblaster) Period(pin gopi.GPIOPin) (time.Duration, error) {
+	this.log.Debug2("<sys.hw.PWM.PiBlaster>Period{ pin=%v }", pin)
+
+	// If pin is not in list of pins, then set duty cycle of 0
+	if _, exists := this.pins[pin]; exists {
+		return this.period, nil
+	} else if err := this.SetDutyCycle(0, pin); err != nil {
+		return 0, err
+	} else {
+		return this.period, nil
+	}
 }
 
-func (this *piblaster) DutyCycle(gopi.GPIOPin) (float32, error) {
-	return 0, gopi.ErrNotImplemented
+func (this *piblaster) SetPeriod(period time.Duration, pin gopi.GPIOPin) error {
+	this.log.Debug2("<sys.hw.PWM.PiBlaster>SetPeriod{ period=%v pin=%v }", period, pin)
+
+	if period != this.period {
+		return fmt.Errorf("<sys.hw.PWM.PiBlaster>SetPeriod: Unable to set period other than %v on pin %v", this.period, pin)
+	} else if _, exists := this.pins[pin]; exists {
+		return nil
+	} else if err := this.SetDutyCycle(0, pin); err != nil {
+		return err
+	} else {
+		return nil
+	}
 }
 
-func (this *piblaster) SetDutyCycle(float32, gopi.GPIOPin) error {
-	return gopi.ErrNotImplemented
+func (this *piblaster) DutyCycle(pin gopi.GPIOPin) (float32, error) {
+	this.log.Debug2("<sys.hw.PWM.PiBlaster>DutyCycle{ pin=%v }", pin)
+
+	if duty_cycle, exists := this.pins[pin]; exists {
+		return duty_cycle, nil
+	} else if err := this.SetDutyCycle(0, pin); err != nil {
+		return 0, err
+	} else {
+		return 0, nil
+	}
+}
+
+func (this *piblaster) SetDutyCycle(duty_cycle float32, pin gopi.GPIOPin) error {
+	this.log.Debug2("<sys.hw.PWM.PiBlaster>SetDutyCycle{ duty_cycle=%v pin=%v }", duty_cycle, pin)
+
+	if duty_cycle < 0.0 || duty_cycle > 1.0 {
+		return gopi.ErrBadParameter
+	} else if current_cycle, exists := this.pins[pin]; exists && current_cycle == duty_cycle {
+		return nil
+	} else if _, err := fmt.Fprintf(this.fh, "%v=%v\n", uint(pin), duty_cycle); err != nil {
+		return err
+	} else {
+		this.pins[pin] = duty_cycle
+		return nil
+	}
+}
+
+func (this *piblaster) Release(pin gopi.GPIOPin) error {
+	this.log.Debug2("<sys.hw.PWM.PiBlaster>Release{ pin=%v }", pin)
+
+	if _, exists := this.pins[pin]; exists == false {
+		return gopi.ErrNotFound
+	} else if _, err := fmt.Fprintf(this.fh, "release %v\n", uint(pin)); err != nil {
+		return err
+	} else {
+		delete(this.pins, pin)
+	}
+	return nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -150,7 +227,7 @@ func (this *piblaster) set_value(name, value string) error {
 			this.period = period
 		}
 	case strings.HasSuffix(name, "steps"):
-		if samples, err := strconv.ParseUint(value,10, 64); err != nil {
+		if samples, err := strconv.ParseUint(value, 10, 64); err != nil {
 			return err
 		} else {
 			this.samples = uint(samples)
@@ -169,6 +246,15 @@ func (this *piblaster) set_value(name, value string) error {
 		}
 	}
 	return nil
+}
+
+// all_pins returns the enabled pins
+func (this *piblaster) all_pins() []gopi.GPIOPin {
+	pins := make([]gopi.GPIOPin, 0, len(this.pins))
+	for pin := range this.pins {
+		pins = append(pins, pin)
+	}
+	return pins
 }
 
 func ParseFrequency(value string) (time.Duration, error) {

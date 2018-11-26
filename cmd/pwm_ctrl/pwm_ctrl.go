@@ -19,6 +19,8 @@ import (
 
 	// Modules
 	_ "github.com/djthorpe/gopi-hw/sys/gpio"
+	_ "github.com/djthorpe/gopi-hw/sys/hw"
+	_ "github.com/djthorpe/gopi-hw/sys/metrics"
 	_ "github.com/djthorpe/gopi-hw/sys/pwm"
 	_ "github.com/djthorpe/gopi/sys/logger"
 )
@@ -42,7 +44,7 @@ func mainLoop(app *gopi.AppInstance, done chan<- struct{}) error {
 
 func main() {
 	// Create the configuration, load the spi instance
-	config := gopi.NewAppConfig("pwm", "gpio")
+	config := gopi.NewAppConfig("pwm")
 
 	// Run the command line tool
 	os.Exit(gopi.CommandLineTool(config, mainLoop))
