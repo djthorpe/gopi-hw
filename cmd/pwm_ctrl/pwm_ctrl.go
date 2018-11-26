@@ -33,6 +33,10 @@ func mainLoop(app *gopi.AppInstance, done chan<- struct{}) error {
 		return app.Logger.Error("Missing PWM module instance")
 	}
 
+	if err := app.PWM.SetDutyCycle(0, 4); err != nil {
+		return err
+	}
+
 	fmt.Println(app.PWM)
 
 	// Finished
