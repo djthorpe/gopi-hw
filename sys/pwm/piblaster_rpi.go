@@ -178,11 +178,22 @@ func (this *piblaster) SetDutyCycle(duty_cycle float32, pin gopi.GPIOPin) error 
 		return gopi.ErrBadParameter
 	} else if current_cycle, exists := this.pins[pin]; exists && current_cycle == duty_cycle {
 		return nil
-	} else if _, err := fmt.Fprintf(this.fh, "%v=%v\n", uint(pin), duty_cycle); err != nil {
-		return err
 	} else {
-		this.pins[pin] = duty_cycle
-		return nil
+		// Clamp duty cycle between minimum and maxiumum unless it's 0 or 1
+		min_duty_cycle := float32(this.min_period.Nanoseconds()) / float32(this.period.Nanoseconds())
+		max_duty_cycle := float32(this.max_period.Nanoseconds()) / float32(this.period.Nanoseconds())
+		if duty_cycle != 0.0 && duty_cycle < min_duty_cycle {
+			duty_cycle = min_duty_cycle
+		}
+		if duty_cycle != 1.0 && duty_cycle > max_duty_cycle {
+			duty_cycle = max_duty_cycle
+		}
+		if _, err := fmt.Fprintf(this.fh, "%v=%v\n", uint(pin), duty_cycle); err != nil {
+			return err
+		} else {
+			this.pins[pin] = duty_cycle
+			return nil
+		}
 	}
 }
 
