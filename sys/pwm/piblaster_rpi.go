@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -43,10 +42,6 @@ type piblaster struct {
 	max_period time.Duration
 	pins       map[gopi.GPIOPin]float32
 }
-
-var (
-	regexpFrequency = regexp.MustCompile("^([0-9]+\\.?[0-9]*)\\s*(hz|khz|mhz)$")
-)
 
 ////////////////////////////////////////////////////////////////////////////////
 // OPEN AND CLOSE
@@ -266,19 +261,4 @@ func (this *piblaster) all_pins() []gopi.GPIOPin {
 		pins = append(pins, pin)
 	}
 	return pins
-}
-
-func ParseFrequency(value string) (time.Duration, error) {
-	if parts := regexpFrequency.FindStringSubmatch(strings.ToLower(value)); len(parts) != 3 {
-		return 0, gopi.ErrBadParameter
-	} else if num, err := strconv.ParseFloat(parts[1], 64); err != nil {
-		return 0, err
-	} else {
-		switch parts[2] {
-		case "hz":
-			return time.Nanosecond * time.Duration((1E9 / num)), nil
-		default:
-			return 0, gopi.ErrBadParameter
-		}
-	}
 }
