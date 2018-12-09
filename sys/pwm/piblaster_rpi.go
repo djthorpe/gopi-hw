@@ -142,14 +142,14 @@ func (this *piblaster) Period(pin gopi.GPIOPin) (time.Duration, error) {
 	}
 }
 
-func (this *piblaster) SetPeriod(period time.Duration, pin gopi.GPIOPin) error {
-	this.log.Debug2("<sys.hw.PWM.PiBlaster>SetPeriod{ period=%v pin=%v }", period, pin)
+func (this *piblaster) SetPeriod(period time.Duration, pins ...gopi.GPIOPin) error {
+	this.log.Debug2("<sys.hw.PWM.PiBlaster>SetPeriod{ period=%v pins=%v }", period, pins)
 
 	if period != this.period {
-		return fmt.Errorf("<sys.hw.PWM.PiBlaster>SetPeriod: Unable to set period other than %v on pin %v", this.period, pin)
-	} else if _, exists := this.pins[pin]; exists {
-		return nil
-	} else if err := this.SetDutyCycle(0, pin); err != nil {
+		return fmt.Errorf("<sys.hw.PWM.PiBlaster>SetPeriod: Unable to set period other than %v on pins %v", this.period, pins)
+	} else if len(pins) == 0 {
+		return gopi.ErrBadParameter
+	} else if err := this.SetDutyCycle(0, pins...); err != nil {
 		return err
 	} else {
 		return nil
@@ -168,13 +168,13 @@ func (this *piblaster) DutyCycle(pin gopi.GPIOPin) (float32, error) {
 	}
 }
 
-func (this *piblaster) SetDutyCycle(duty_cycle float32, pin gopi.GPIOPin) error {
-	this.log.Debug2("<sys.hw.PWM.PiBlaster>SetDutyCycle{ duty_cycle=%v pin=%v }", duty_cycle, pin)
+func (this *piblaster) SetDutyCycle(duty_cycle float32, pins ...gopi.GPIOPin) error {
+	this.log.Debug2("<sys.hw.PWM.PiBlaster>SetDutyCycle{ duty_cycle=%v pins=%v }", duty_cycle, pins)
 
 	if duty_cycle < 0.0 || duty_cycle > 1.0 {
 		return gopi.ErrBadParameter
-	} else if current_cycle, exists := this.pins[pin]; exists && current_cycle == duty_cycle {
-		return nil
+	} else if len(pins) == 0 {
+		return gopi.ErrBadParameter
 	} else {
 		// Clamp duty cycle between minimum and maxiumum unless it's 0 or 1
 		min_duty_cycle := float32(this.min_period.Nanoseconds()) / float32(this.period.Nanoseconds())
@@ -185,10 +185,16 @@ func (this *piblaster) SetDutyCycle(duty_cycle float32, pin gopi.GPIOPin) error 
 		if duty_cycle != 1.0 && duty_cycle > max_duty_cycle {
 			duty_cycle = max_duty_cycle
 		}
-		if _, err := fmt.Fprintf(this.fh, "%v=%v\n", uint(pin), duty_cycle); err != nil {
+		params := make([]string, len(pins))
+		for i, pin := range pins {
+			params[i] = fmt.Sprintf("%v=%v", uint(pin), duty_cycle)
+		}
+		if _, err := fmt.Fprintf(this.fh, "%v\n", strings.Join(params, " ")); err != nil {
 			return err
 		} else {
-			this.pins[pin] = duty_cycle
+			for _, pin := range pins {
+				this.pins[pin] = duty_cycle
+			}
 			return nil
 		}
 	}
