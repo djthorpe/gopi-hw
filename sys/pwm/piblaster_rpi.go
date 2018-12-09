@@ -189,6 +189,7 @@ func (this *piblaster) SetDutyCycle(duty_cycle float32, pins ...gopi.GPIOPin) er
 		for i, pin := range pins {
 			params[i] = fmt.Sprintf("%v=%v", uint(pin), duty_cycle)
 		}
+		this.log.Debug2("<sys.hw.PWM.PiBlaster>SetDutyCycle{ write=>\"%v\" }", strings.Join(params, " "))
 		if _, err := fmt.Fprintf(this.fh, "%v\n", strings.Join(params, " ")); err != nil {
 			return err
 		} else {
