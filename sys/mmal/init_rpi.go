@@ -21,10 +21,13 @@ import (
 
 func init() {
 	gopi.RegisterModule(gopi.Module{
-		Name: "hw/mmal",
-		Type: gopi.MODULE_TYPE_OTHER,
+		Name:     "hw/mmal",
+		Type:     gopi.MODULE_TYPE_OTHER,
+		Requires: []string{"hw"},
 		New: func(app *gopi.AppInstance) (gopi.Driver, error) {
-			return gopi.Open(MMAL{}, app.Logger)
+			return gopi.Open(MMAL{
+				Hardware: app.Hardware,
+			}, app.Logger)
 		},
 	})
 }

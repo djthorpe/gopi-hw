@@ -128,7 +128,7 @@ const (
 
 const (
 	// MMAL_PARAMETER_GROUP_COMMON
-	MMAL_PARAMETER_UNUSED               = MMAL_PARAMETER_GROUP_COMMON
+	_                                   = iota
 	MMAL_PARAMETER_SUPPORTED_ENCODINGS  // Takes a MMAL_PARAMETER_ENCODING_T
 	MMAL_PARAMETER_URI                  // Takes a MMAL_PARAMETER_URI_T
 	MMAL_PARAMETER_CHANGE_EVENT_REQUEST // Takes a MMAL_PARAMETER_CHANGE_EVENT_REQUEST_T
@@ -404,10 +404,10 @@ func MMALPortSetDisplayRegion(handle MMAL_PortHandle, value MMAL_DisplayRegion) 
 
 func MMALPortParameterAllocGet(handle MMAL_PortHandle, name MMAL_ParameterType, size uint32) (MMAL_ParameterHandle, error) {
 	var err C.MMAL_STATUS_T
-	if handle := C.mmal_port_parameter_alloc_get(handle, C.uint(name), C.uint32_t(size), &err); MMAL_Status(err) != MMAL_SUCCESS {
-		return handle, MMAL_Status(err)
+	if param := C.mmal_port_parameter_alloc_get(handle, C.uint32_t(name), C.uint32_t(size), &err); MMAL_Status(err) != MMAL_SUCCESS {
+		return nil, MMAL_Status(err)
 	} else {
-		return handle, nil
+		return param, nil
 	}
 }
 
@@ -537,6 +537,23 @@ func MMALPortParameterGetRational(handle MMAL_PortHandle, name MMAL_ParameterTyp
 	}
 }
 
+func MMALParamGetArrayUint32(handle MMAL_ParameterHandle) []uint32 {
+	var array []uint32
+
+	// Data and length of the array
+	data := uintptr(unsafe.Pointer(handle)) + unsafe.Sizeof(*handle)
+	len := (uintptr(handle.size) - unsafe.Sizeof(*handle)) / C.sizeof_uint32_t
+
+	// Make a fake slice
+	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&array)))
+	sliceHeader.Cap = int(len)
+	sliceHeader.Len = int(len)
+	sliceHeader.Data = data
+
+	// Return the array
+	return array
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS - STREAM FORMATS
 
@@ -573,6 +590,10 @@ func MMALStreamFormatCompare(dest, src MMAL_StreamFormat) MMAL_StreamCompareFlag
 	return MMAL_StreamCompareFlags(C.mmal_format_compare(dest, src))
 }
 
+func MMALStreamFormatType(handle MMAL_StreamFormat) MMAL_StreamType {
+	return MMAL_StreamType(handle._type)
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // STRINGIFY
 
@@ -585,35 +606,35 @@ func (s MMAL_Status) Error() string {
 	case MMAL_SUCCESS:
 		return "MMAL_SUCCESS"
 	case MMAL_ENOMEM:
-		return "MMAL_ENOMEM"
+		return "MMAL_ENOMEM: Out of memory"
 	case MMAL_ENOSPC:
-		return "MMAL_ENOSPC"
+		return "MMAL_ENOSPC: Out of resources (other than memory)"
 	case MMAL_EINVAL:
-		return "MMAL_EINVAL"
+		return "MMAL_EINVAL: Argument is invalid"
 	case MMAL_ENOSYS:
-		return "MMAL_ENOSYS"
+		return "MMAL_ENOSYS: Function not implemented"
 	case MMAL_ENOENT:
-		return "MMAL_ENOENT"
+		return "MMAL_ENOENT: No such file or directory"
 	case MMAL_ENXIO:
-		return "MMAL_ENXIO"
+		return "MMAL_ENXIO: No such device or address"
 	case MMAL_EIO:
-		return "MMAL_EIO"
+		return "MMAL_EIO: I/O error"
 	case MMAL_ESPIPE:
-		return "MMAL_ESPIPE"
+		return "MMAL_ESPIPE: Illegal seek"
 	case MMAL_ECORRUPT:
-		return "MMAL_ECORRUPT"
+		return "MMAL_ECORRUPT: Data is corrupt"
 	case MMAL_ENOTREADY:
-		return "MMAL_ENOTREADY"
+		return "MMAL_ENOTREADY: Component is not ready"
 	case MMAL_ECONFIG:
-		return "MMAL_ECONFIG"
+		return "MMAL_ECONFIG: Component is not configured"
 	case MMAL_EISCONN:
-		return "MMAL_EISCONN"
+		return "MMAL_EISCONN: Port is already connected"
 	case MMAL_ENOTCONN:
-		return "MMAL_ENOTCONN"
+		return "MMAL_ENOTCONN: Port is disconnected"
 	case MMAL_EAGAIN:
-		return "MMAL_EAGAIN"
+		return "MMAL_EAGAIN: Resource temporarily unavailable. Try again later"
 	case MMAL_EFAULT:
-		return "MMAL_EFAULT"
+		return "MMAL_EFAULT: Bad address"
 	default:
 		return "[?? Invalid MMAL_StatusType value]"
 	}

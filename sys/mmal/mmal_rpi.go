@@ -25,10 +25,13 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 // TYPES
 
-type MMAL struct{}
+type MMAL struct {
+	Hardware gopi.Hardware
+}
 
 type mmal struct {
 	log        gopi.Logger
+	hardware   gopi.Hardware
 	components map[string]*component
 }
 
@@ -54,21 +57,30 @@ type format struct {
 // OPEN AND CLOSE
 
 func (config MMAL) Open(log gopi.Logger) (gopi.Driver, error) {
-	log.Debug("<sys.hw.mmal>Open{}")
+	log.Debug("<sys.hw.mmal>Open{ hw=%v }", config.Hardware)
 	this := new(mmal)
 	this.log = log
+	this.hardware = config.Hardware
 	this.components = make(map[string]*component, 0)
+
 	return this, nil
 }
 
 func (this *mmal) Close() error {
-	this.log.Debug("<sys.hw.mmal>Close{}")
+	this.log.Debug("<sys.hw.mmal>Close{ hw=%v }", this.hardware)
+
+	// Close components
 	err := new(errors.CompoundError)
 	for _, component := range this.components {
 		if err_ := component.Close(); err != nil {
 			err.Add(err_)
 		}
 	}
+
+	// Release resources
+	this.hardware = nil
+	this.components = nil
+
 	return err.ErrorOrSelf()
 }
 
