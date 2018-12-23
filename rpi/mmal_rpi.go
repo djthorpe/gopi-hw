@@ -27,6 +27,7 @@ import "C"
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"unsafe"
 )
@@ -35,14 +36,18 @@ import (
 // TYPES
 
 type (
-	MMAL_Status          (C.MMAL_STATUS_T)
-	MMAL_ComponentHandle (*C.MMAL_COMPONENT_T)
-	MMAL_PortType        (C.MMAL_PORT_TYPE_T)
-	MMAL_PortHandle      (*C.MMAL_PORT_T)
-	MMAL_PortCapability  (C.uint32_t)
-	MMAL_ParameterHandle (*C.MMAL_PARAMETER_HEADER_T)
-	MMAL_ParameterType   uint
-	MMAL_DisplayRegion   (*C.MMAL_DISPLAYREGION_T)
+	MMAL_Status             (C.MMAL_STATUS_T)
+	MMAL_ComponentHandle    (*C.MMAL_COMPONENT_T)
+	MMAL_PortType           (C.MMAL_PORT_TYPE_T)
+	MMAL_PortHandle         (*C.MMAL_PORT_T)
+	MMAL_PortCapability     (C.uint32_t)
+	MMAL_ParameterHandle    (*C.MMAL_PARAMETER_HEADER_T)
+	MMAL_ParameterType      uint
+	MMAL_DisplayRegion      (*C.MMAL_DISPLAYREGION_T)
+	MMAL_Rational           (C.MMAL_RATIONAL_T)
+	MMAL_StreamType         (C.MMAL_ES_TYPE_T)
+	MMAL_StreamFormat       (*C.MMAL_ES_FORMAT_T)
+	MMAL_StreamCompareFlags (C.uint32_t)
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -141,6 +146,33 @@ const (
 	MMAL_PARAMETER_LOCKSTEP_ENABLE      // Takes a MMAL_PARAMETER_BOOLEAN_T
 )
 
+const (
+	// MMAL_ES_TYPE_T
+	MMAL_STREAM_TYPE_UNKNOWN    MMAL_StreamType = iota // Unknown elementary stream type
+	MMAL_STREAM_TYPE_CONTROL                           // Elementary stream of control commands
+	MMAL_STREAM_TYPE_AUDIO                             // Audio elementary stream
+	MMAL_STREAM_TYPE_VIDEO                             //  Video elementary stream
+	MMAL_STREAM_TYPE_SUBPICTURE                        // Sub-picture elementary stream (e.g. subtitles, overlays)
+	MMAL_STREAM_TYPE_MIN        = MMAL_STREAM_TYPE_UNKNOWN
+	MMAL_STREAM_TYPE_MAX        = MMAL_STREAM_TYPE_SUBPICTURE
+)
+
+const (
+	// MMAL_StreamCompareFlags
+	MMAL_STREAM_COMPARE_FLAG_TYPE               MMAL_StreamCompareFlags = 0x0001 // The type is different
+	MMAL_STREAM_COMPARE_FLAG_ENCODING           MMAL_StreamCompareFlags = 0x0002 // The encoding is different
+	MMAL_STREAM_COMPARE_FLAG_BITRATE            MMAL_StreamCompareFlags = 0x0004 // The bitrate is different
+	MMAL_STREAM_COMPARE_FLAG_FLAGS              MMAL_StreamCompareFlags = 0x0008 // The flags are different
+	MMAL_STREAM_COMPARE_FLAG_EXTRADATA          MMAL_StreamCompareFlags = 0x0010 // The extradata is different
+	MMAL_STREAM_COMPARE_FLAG_VIDEO_RESOLUTION   MMAL_StreamCompareFlags = 0x0100 // The video resolution is different
+	MMAL_STREAM_COMPARE_FLAG_VIDEO_CROPPING     MMAL_StreamCompareFlags = 0x0200 // The video cropping is different
+	MMAL_STREAM_COMPARE_FLAG_VIDEO_FRAME_RATE   MMAL_StreamCompareFlags = 0x0400 // The video frame rate is different
+	MMAL_STREAM_COMPARE_FLAG_VIDEO_ASPECT_RATIO MMAL_StreamCompareFlags = 0x0800 // The video aspect ratio is different
+	MMAL_STREAM_COMPARE_FLAG_VIDEO_COLOR_SPACE  MMAL_StreamCompareFlags = 0x1000 // The video color space is different
+	MMAL_STREAM_COMPARE_FLAG_MIN                                        = MMAL_STREAM_COMPARE_FLAG_TYPE
+	MMAL_STREAM_COMPARE_FLAG_MAX                                        = MMAL_STREAM_COMPARE_FLAG_VIDEO_COLOR_SPACE
+)
+
 ////////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS - COMPONENTS
 
@@ -166,8 +198,9 @@ func MMALComponentDestroy(handle MMAL_ComponentHandle) error {
 	}
 }
 
-func MMALComponentAcquire(handle MMAL_ComponentHandle) {
+func MMALComponentAcquire(handle MMAL_ComponentHandle) error {
 	C.mmal_component_acquire(handle)
+	return nil
 }
 
 func MMALComponentRelease(handle MMAL_ComponentHandle) error {
@@ -210,45 +243,45 @@ func MMALComponentControlPort(handle MMAL_ComponentHandle) MMAL_PortHandle {
 	return handle.control
 }
 
-func MMALComponentInputPortNum(handle MMAL_ComponentHandle) uint32 {
-	return uint32(handle.input_num)
+func MMALComponentInputPortNum(handle MMAL_ComponentHandle) uint {
+	return uint(handle.input_num)
 }
 
 func MMALComponentInputPortAtIndex(handle MMAL_ComponentHandle, index uint) MMAL_PortHandle {
-	port_base := uintptr(unsafe.Pointer(&handle.input))
-	port_index := unsafe.Sizeof(MMAL_PortHandle(nil)) * uintptr(index)
-	return MMAL_PortHandle(unsafe.Pointer(port_base + port_index))
+	return mmal_component_port_at_index(handle.input, uint(handle.input_num), index)
 }
 
-func MMALComponentOutputPortNum(handle MMAL_ComponentHandle) uint32 {
-	return uint32(handle.output_num)
+func MMALComponentOutputPortNum(handle MMAL_ComponentHandle) uint {
+	return uint(handle.output_num)
 }
 
 func MMALComponentOutputPortAtIndex(handle MMAL_ComponentHandle, index uint) MMAL_PortHandle {
-	port_base := uintptr(unsafe.Pointer(&handle.output))
-	port_index := unsafe.Sizeof(MMAL_PortHandle(nil)) * uintptr(index)
-	return MMAL_PortHandle(unsafe.Pointer(port_base + port_index))
+	return mmal_component_port_at_index(handle.output, uint(handle.output_num), index)
 }
 
-func MMALComponentClockPortNum(handle MMAL_ComponentHandle) uint32 {
-	return uint32(handle.clock_num)
+func MMALComponentClockPortNum(handle MMAL_ComponentHandle) uint {
+	return uint(handle.clock_num)
 }
 
 func MMALComponentClockPortAtIndex(handle MMAL_ComponentHandle, index uint) MMAL_PortHandle {
-	port_base := uintptr(unsafe.Pointer(&handle.clock))
-	port_index := unsafe.Sizeof(MMAL_PortHandle(nil)) * uintptr(index)
-	return MMAL_PortHandle(unsafe.Pointer(port_base + port_index))
+	return mmal_component_port_at_index(handle.clock, uint(handle.clock_num), index)
 }
 
-func MMALComponentPortNum(handle MMAL_ComponentHandle) uint32 {
-	return uint32(handle.port_num)
+func MMALComponentPortNum(handle MMAL_ComponentHandle) uint {
+	return uint(handle.port_num)
 }
 
 func MMALComponentPortAtIndex(handle MMAL_ComponentHandle, index uint) MMAL_PortHandle {
-	port_base := uintptr(unsafe.Pointer(&handle.port))
-	port_index := unsafe.Sizeof(MMAL_PortHandle(nil)) * uintptr(index)
-	return MMAL_PortHandle(unsafe.Pointer(port_base + port_index))
+	return mmal_component_port_at_index(handle.port, uint(handle.port_num), index)
+}
 
+func mmal_component_port_at_index(array **C.MMAL_PORT_T, num, index uint) MMAL_PortHandle {
+	var handles []MMAL_PortHandle
+	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&handles)))
+	sliceHeader.Cap = int(num)
+	sliceHeader.Len = int(num)
+	sliceHeader.Data = uintptr(unsafe.Pointer(array))
+	return handles[index]
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -322,11 +355,31 @@ func MMALPortFormatCommit(handle MMAL_PortHandle) error {
 	}
 }
 
-/*
-func MMALPortFormat(handle MMAL_PortHandle) MMAL_FormatHandle {
+func MMALPortFormat(handle MMAL_PortHandle) MMAL_StreamFormat {
 	return handle.format
 }
-*/
+
+func MMALPortComponent(handle MMAL_PortHandle) MMAL_ComponentHandle {
+	return handle.component
+}
+
+func MMALPortBufferNum(handle MMAL_PortHandle) (uint32, uint32) {
+	// Minimum & recommended number of buffers the port requires
+	// A value of zero for recommendation means no special recommendation
+	return uint32(handle.buffer_num_min), uint32(handle.buffer_num_recommended)
+}
+
+func MMALPortBufferSize(handle MMAL_PortHandle) (uint32, uint32) {
+	// Minimum & recommended size of buffers the port requires
+	// A value of zero means no special recommendation
+	return uint32(handle.buffer_size_min), uint32(handle.buffer_size_recommended)
+}
+
+func MMALPortBufferAlignment(handle MMAL_PortHandle) uint32 {
+	// Minimum alignment requirement for the buffers. A value of zero
+	// means no special alignment requirements.
+	return uint32(handle.buffer_alignment_min)
+}
 
 func MMALPortSetURI(handle MMAL_PortHandle, value string) error {
 	cValue := C.CString(value)
@@ -467,6 +520,59 @@ func MMALPortParameterSetBytes(handle MMAL_PortHandle, name MMAL_ParameterType, 
 	}
 }
 
+func MMALPortParameterSetRational(handle MMAL_PortHandle, name MMAL_ParameterType, value MMAL_Rational) error {
+	if status := MMAL_Status(C.mmal_port_parameter_set_rational(handle, C.uint(name), C.MMAL_RATIONAL_T(value))); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortParameterGetRational(handle MMAL_PortHandle, name MMAL_ParameterType) (MMAL_Rational, error) {
+	var value C.MMAL_RATIONAL_T
+	if status := MMAL_Status(C.mmal_port_parameter_get_rational(handle, C.uint(name), &value)); status == MMAL_SUCCESS {
+		return MMAL_Rational(value), nil
+	} else {
+		return MMAL_Rational(value), status
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// PUBLIC METHODS - STREAM FORMATS
+
+func MMALStreamFormatAlloc() MMAL_StreamFormat {
+	return MMAL_StreamFormat(C.mmal_format_alloc())
+}
+
+func MMALStreamFormatFree(handle MMAL_StreamFormat) {
+	C.mmal_format_free(handle)
+}
+
+func MMALStreamFormatExtraDataAlloc(handle MMAL_StreamFormat, size uint) error {
+	if status := MMAL_Status(C.mmal_format_extradata_alloc(handle, C.uint(size))); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALStreamFormatCopy(dest, src MMAL_StreamFormat) error {
+	C.mmal_format_copy(dest, src)
+	return nil
+}
+
+func MMALStreamFormatFullCopy(dest, src MMAL_StreamFormat) error {
+	if status := MMAL_Status(C.mmal_format_full_copy(dest, src)); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALStreamFormatCompare(dest, src MMAL_StreamFormat) MMAL_StreamCompareFlags {
+	return MMAL_StreamCompareFlags(C.mmal_format_compare(dest, src))
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // STRINGIFY
 
@@ -545,6 +651,57 @@ func (c MMAL_PortCapability) String() string {
 			parts += "|" + "MMAL_PORT_CAPABILITY_SUPPORTS_EVENT_FORMAT_CHANGE"
 		default:
 			parts += "|" + "[?? Invalid MMAL_PortCapability value]"
+		}
+	}
+	return strings.Trim(parts, "|")
+}
+
+func (s MMAL_StreamType) String() string {
+	switch s {
+	case MMAL_STREAM_TYPE_UNKNOWN:
+		return "MMAL_STREAM_TYPE_UNKNOWN"
+	case MMAL_STREAM_TYPE_CONTROL:
+		return "MMAL_STREAM_TYPE_CONTROL"
+	case MMAL_STREAM_TYPE_AUDIO:
+		return "MMAL_STREAM_TYPE_AUDIO"
+	case MMAL_STREAM_TYPE_VIDEO:
+		return "MMAL_STREAM_TYPE_VIDEO"
+	case MMAL_STREAM_TYPE_SUBPICTURE:
+		return "MMAL_STREAM_TYPE_SUBPICTURE"
+	default:
+		return "[?? Invalid MMAL_StreamType value]"
+	}
+}
+
+func (f MMAL_StreamCompareFlags) String() string {
+	parts := ""
+	for flag := MMAL_STREAM_COMPARE_FLAG_MIN; flag <= MMAL_STREAM_COMPARE_FLAG_MAX; flag <<= 1 {
+		if f&flag == 0 {
+			continue
+		}
+		switch flag {
+		case MMAL_STREAM_COMPARE_FLAG_TYPE:
+			parts += "|" + "MMAL_STREAM_COMPARE_FLAG_TYPE"
+		case MMAL_STREAM_COMPARE_FLAG_ENCODING:
+			parts += "|" + "MMAL_STREAM_COMPARE_FLAG_ENCODING"
+		case MMAL_STREAM_COMPARE_FLAG_BITRATE:
+			parts += "|" + "MMAL_STREAM_COMPARE_FLAG_BITRATE"
+		case MMAL_STREAM_COMPARE_FLAG_FLAGS:
+			parts += "|" + "MMAL_STREAM_COMPARE_FLAG_FLAGS"
+		case MMAL_STREAM_COMPARE_FLAG_EXTRADATA:
+			parts += "|" + "MMAL_STREAM_COMPARE_FLAG_EXTRADATA"
+		case MMAL_STREAM_COMPARE_FLAG_VIDEO_RESOLUTION:
+			parts += "|" + "MMAL_STREAM_COMPARE_FLAG_VIDEO_RESOLUTION"
+		case MMAL_STREAM_COMPARE_FLAG_VIDEO_CROPPING:
+			parts += "|" + "MMAL_STREAM_COMPARE_FLAG_VIDEO_CROPPING"
+		case MMAL_STREAM_COMPARE_FLAG_VIDEO_FRAME_RATE:
+			parts += "|" + "MMAL_STREAM_COMPARE_FLAG_VIDEO_FRAME_RATE"
+		case MMAL_STREAM_COMPARE_FLAG_VIDEO_ASPECT_RATIO:
+			parts += "|" + "MMAL_STREAM_COMPARE_FLAG_VIDEO_ASPECT_RATIO"
+		case MMAL_STREAM_COMPARE_FLAG_VIDEO_COLOR_SPACE:
+			parts += "|" + "MMAL_STREAM_COMPARE_FLAG_VIDEO_COLOR_SPACE"
+		default:
+			parts += "|" + "[?? Invalid MMAL_StreamCompareFlags value]"
 		}
 	}
 	return strings.Trim(parts, "|")

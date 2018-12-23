@@ -44,6 +44,28 @@ func TestPortCapability_000(t *testing.T) {
 	}
 }
 
+func TestStreamType_000(t *testing.T) {
+	for stream_type := rpi.MMAL_STREAM_TYPE_MIN; stream_type <= rpi.MMAL_STREAM_TYPE_MAX; stream_type++ {
+		stream_type_string := fmt.Sprint(stream_type)
+		if strings.HasPrefix(stream_type_string, "MMAL_STREAM_TYPE_") == false {
+			t.Error("Invalid stream type string ", stream_type_string)
+		} else {
+			t.Logf("%v => %s", int(stream_type), stream_type_string)
+		}
+	}
+}
+
+func TestStreamCompareFlags_000(t *testing.T) {
+	for stream_flag := rpi.MMAL_STREAM_COMPARE_FLAG_MIN; stream_flag <= rpi.MMAL_STREAM_COMPARE_FLAG_MAX; stream_flag <<= 1 {
+		stream_flag_string := fmt.Sprint(stream_flag)
+		if strings.HasPrefix(stream_flag_string, "MMAL_STREAM_COMPARE_FLAG_") == false {
+			t.Logf("%08X => [not used]", int(stream_flag))
+		} else {
+			t.Logf("%08X => %s", int(stream_flag), stream_flag_string)
+		}
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // TEST COMPONENTS
 
@@ -89,5 +111,65 @@ func TestComponent_003(t *testing.T) {
 		t.Error("Component destroy error:", err)
 	} else if control_type := rpi.MMALPortType(control); control_type != rpi.MMAL_PORT_TYPE_CONTROL {
 		t.Logf("Unexpected control port type=%v", control_type)
+	}
+}
+
+func TestComponent_004(t *testing.T) {
+	var handle rpi.MMAL_ComponentHandle
+	if err := rpi.MMALComponentCreate(rpi.MMAL_COMPONENT_DEFAULT_CLOCK, &handle); err != nil {
+		t.Error("Component create error:", err)
+	} else if err := rpi.MMALComponentAcquire(handle); err != nil {
+		t.Error("Unepxected acquire error:", err)
+	} else if err := rpi.MMALComponentRelease(handle); err != nil {
+		t.Error("Unepxected release error:", err)
+	} else if err := rpi.MMALComponentDestroy(handle); err != nil {
+		t.Error("Component destroy error:", err)
+	}
+}
+
+func TestComponent_005(t *testing.T) {
+	var handle rpi.MMAL_ComponentHandle
+	if err := rpi.MMALComponentCreate(rpi.MMAL_COMPONENT_DEFAULT_CLOCK, &handle); err != nil {
+		t.Error("Component create error:", err)
+	} else if err := rpi.MMALComponentEnable(handle); err != nil {
+		t.Error("Unepxected enable error:", err)
+	} else if enabled := rpi.MMALComponentIsEnabled(handle); enabled == false {
+		t.Error("Unepxected enabled value:", enabled)
+	} else if err := rpi.MMALComponentDisable(handle); err != nil {
+		t.Error("Unepxected disable error:", err)
+	} else if enabled := rpi.MMALComponentIsEnabled(handle); enabled == true {
+		t.Error("Unepxected enabled value:", enabled)
+	} else if err := rpi.MMALComponentDestroy(handle); err != nil {
+		t.Error("Component destroy error:", err)
+	}
+}
+
+func TestComponent_006(t *testing.T) {
+	var handle rpi.MMAL_ComponentHandle
+	if err := rpi.MMALComponentCreate(rpi.MMAL_COMPONENT_DEFAULT_CLOCK, &handle); err != nil {
+		t.Error("Component create error:", err)
+	} else if num_ports := rpi.MMALComponentPortNum(handle); num_ports == 0 {
+		t.Error("Unexpected number of ports:", num_ports)
+	} else if err := rpi.MMALComponentDestroy(handle); err != nil {
+		t.Error("Component destroy error:", err)
+	}
+}
+
+func TestComponent_007(t *testing.T) {
+	var handle rpi.MMAL_ComponentHandle
+	if err := rpi.MMALComponentCreate(rpi.MMAL_COMPONENT_DEFAULT_CLOCK, &handle); err != nil {
+		t.Error("Component create error:", err)
+	} else if num_ports := rpi.MMALComponentPortNum(handle); num_ports == 0 {
+		t.Error("Unexpected number of ports:", num_ports)
+	} else {
+		for port_index := uint(0); port_index < uint(num_ports); port_index++ {
+			port := rpi.MMALComponentPortAtIndex(handle, port_index)
+			port_type := rpi.MMALPortType(port)
+			port_name := rpi.MMALPortName(port)
+			t.Log(port_index, port_type, port_name)
+		}
+		if err := rpi.MMALComponentDestroy(handle); err != nil {
+			t.Error("Component destroy error:", err)
+		}
 	}
 }
