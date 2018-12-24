@@ -42,7 +42,7 @@ func Main(app *gopi.AppInstance, done chan<- struct{}) error {
 	} else {
 		display_region.SetFullScreen(true)
 		display_region.SetTransform(hw.MMAL_DISPLAY_TRANSFORM_ROT180_MIRROR)
-		display_region.SetAlpha(0x50)
+		display_region.SetMode(hw.MMAL_DISPLAY_MODE_FILL)
 		if err := c.Input().SetDisplayRegion(display_region); err != nil {
 			return err
 		} else if err := c.SetEnabled(true); err != nil {
