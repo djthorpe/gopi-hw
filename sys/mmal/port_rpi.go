@@ -24,7 +24,7 @@ import (
 // STRINGIFY
 
 func (this *port) String() string {
-	return fmt.Sprintf("<sys.hw.mmal.port>{ name='%v' type=%v enabled=%v capabilities=%v format=%v }", this.Name(), rpi.MMALPortType(this.handle), this.Enabled(), rpi.MMALPortCapabilities(this.handle), this.Format())
+	return fmt.Sprintf("<sys.hw.mmal.port>{ name='%v' type=%v enabled=%v capabilities=%v format=%v pool=%v }", this.Name(), rpi.MMALPortType(this.handle), this.Enabled(), rpi.MMALPortCapabilities(this.handle), this.Format(), this.pool)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

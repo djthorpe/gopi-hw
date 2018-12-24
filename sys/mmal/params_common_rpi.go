@@ -22,7 +22,7 @@ import (
 // SUPPORTED ENCODINGS
 
 func (this *port) SupportedEncodings() ([]hw.MMALEncodingType, error) {
-	if param, err := rpi.MMALPortParameterAllocGet(this.handle, rpi.MMAL_PARAMETER_SUPPORTED_ENCODINGS, 0); err != nil {
+	if param, err := rpi.MMALPortParameterAllocGet(this.handle, rpi.MMAL_PARAMETER_GROUP_COMMON|rpi.MMAL_PARAMETER_SUPPORTED_ENCODINGS, 0); err != nil {
 		return nil, err
 	} else {
 		defer rpi.MMALPortParameterAllocFree(param)
@@ -38,7 +38,7 @@ func (this *port) SupportedEncodings() ([]hw.MMALEncodingType, error) {
 // URI
 
 func (this *port) Uri() (string, error) {
-	if param, err := rpi.MMALPortParameterAllocGet(this.handle, rpi.MMAL_PARAMETER_URI, 0); err != nil {
+	if param, err := rpi.MMALPortParameterAllocGet(this.handle, rpi.MMAL_PARAMETER_GROUP_COMMON|rpi.MMAL_PARAMETER_URI, 0); err != nil {
 		return "", err
 	} else {
 		defer rpi.MMALPortParameterAllocFree(param)
@@ -54,11 +54,11 @@ func (this *port) SetUri(value string) error {
 // ZEROCOPY
 
 func (this *port) ZeroCopy() (bool, error) {
-	return rpi.MMALPortParameterGetBool(this.handle, rpi.MMAL_PARAMETER_ZERO_COPY)
+	return rpi.MMALPortParameterGetBool(this.handle, rpi.MMAL_PARAMETER_GROUP_COMMON|rpi.MMAL_PARAMETER_ZERO_COPY)
 }
 
 func (this *port) SetZeroCopy(value bool) error {
-	return rpi.MMALPortParameterSetBool(this.handle, rpi.MMAL_PARAMETER_ZERO_COPY, value)
+	return rpi.MMALPortParameterSetBool(this.handle, rpi.MMAL_PARAMETER_GROUP_COMMON|rpi.MMAL_PARAMETER_ZERO_COPY, value)
 }
 
 /*

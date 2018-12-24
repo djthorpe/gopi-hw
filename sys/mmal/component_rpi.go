@@ -18,6 +18,7 @@ import (
 	"github.com/djthorpe/gopi"
 	hw "github.com/djthorpe/gopi-hw"
 	rpi "github.com/djthorpe/gopi-hw/rpi"
+	"github.com/djthorpe/gopi/util/errors"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -25,15 +26,43 @@ import (
 
 func (this *component) Close() error {
 	this.log.Debug("<sys.hw.mmal.component>Close{}")
+
+	err := new(errors.CompoundError)
+
 	if this.handle == nil {
 		// Already closed
 		return gopi.ErrOutOfOrder
 	}
-	if err := rpi.MMALComponentDestroy(this.handle); err != nil {
-		return err
+
+	// Disable input and output ports, destroy pools
+	for _, port := range this.input {
+		if rpi.MMALPortIsEnabled(port.handle) {
+			if err_ := rpi.MMALPortDisable(port.handle); err_ != nil {
+				err.Add(err_)
+			}
+		}
+		if err_ := rpi.MMALPortPoolDestroy(port.handle, port.pool); err_ != nil {
+			err.Add(err_)
+		}
 	}
+	for _, port := range this.output {
+		if rpi.MMALPortIsEnabled(port.handle) {
+			if err_ := rpi.MMALPortDisable(port.handle); err_ != nil {
+				err.Add(err_)
+			}
+		}
+		if err_ := rpi.MMALPortPoolDestroy(port.handle, port.pool); err_ != nil {
+			err.Add(err_)
+		}
+	}
+
+	if err_ := rpi.MMALComponentDestroy(this.handle); err_ != nil {
+		err.Add(err_)
+	}
+
 	this.handle = nil
-	return nil
+
+	return err.ErrorOrSelf()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -116,7 +145,7 @@ func (this *component) Input() []hw.MMALPort {
 
 func (this *component) Output() []hw.MMALPort {
 	ports := make([]hw.MMALPort, len(this.output))
-	for i, port := range this.input {
+	for i, port := range this.output {
 		ports[i] = port
 	}
 	return ports
@@ -124,7 +153,7 @@ func (this *component) Output() []hw.MMALPort {
 
 func (this *component) Clock() []hw.MMALPort {
 	ports := make([]hw.MMALPort, len(this.clock))
-	for i, port := range this.input {
+	for i, port := range this.clock {
 		ports[i] = port
 	}
 	return ports

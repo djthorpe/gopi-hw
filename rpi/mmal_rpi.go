@@ -20,8 +20,12 @@ package rpi
 #include <interface/mmal/mmal.h>
 #include <interface/mmal/util/mmal_util.h>
 #include <interface/mmal/util/mmal_util_params.h>
+#include <interface/mmal/util/mmal_connection.h>
 
+// Callbacks
 void mmal_port_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buffer);
+MMAL_BOOL_T mmal_bh_release_callback(MMAL_POOL_T* pool, MMAL_BUFFER_HEADER_T* buffer,void *userdata);
+
 */
 import "C"
 
@@ -30,25 +34,38 @@ import (
 	"reflect"
 	"strings"
 	"unsafe"
+
+	// Frameworks
+	hw "github.com/djthorpe/gopi-hw"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
 // TYPES
 
 type (
-	MMAL_Status             (C.MMAL_STATUS_T)
-	MMAL_ComponentHandle    (*C.MMAL_COMPONENT_T)
-	MMAL_PortType           (C.MMAL_PORT_TYPE_T)
-	MMAL_PortHandle         (*C.MMAL_PORT_T)
-	MMAL_PortCapability     (C.uint32_t)
-	MMAL_ParameterHandle    (*C.MMAL_PARAMETER_HEADER_T)
-	MMAL_ParameterType      uint
-	MMAL_DisplayRegion      (*C.MMAL_DISPLAYREGION_T)
-	MMAL_Rational           (C.MMAL_RATIONAL_T)
-	MMAL_StreamType         (C.MMAL_ES_TYPE_T)
-	MMAL_StreamFormat       (*C.MMAL_ES_FORMAT_T)
-	MMAL_StreamCompareFlags (C.uint32_t)
+	MMAL_Status              (C.MMAL_STATUS_T)
+	MMAL_ComponentHandle     (*C.MMAL_COMPONENT_T)
+	MMAL_PortType            (C.MMAL_PORT_TYPE_T)
+	MMAL_PortHandle          (*C.MMAL_PORT_T)
+	MMAL_PortCapability      (C.uint32_t)
+	MMAL_PortConnection      (*C.MMAL_CONNECTION_T)
+	MMAL_ParameterHandle     (*C.MMAL_PARAMETER_HEADER_T)
+	MMAL_ParameterType       uint
+	MMAL_DisplayRegion       (*C.MMAL_DISPLAYREGION_T)
+	MMAL_Rational            (C.MMAL_RATIONAL_T)
+	MMAL_StreamType          (C.MMAL_ES_TYPE_T)
+	MMAL_StreamFormat        (*C.MMAL_ES_FORMAT_T)
+	MMAL_StreamCompareFlags  (C.uint32_t)
+	MMAL_PortConnectionFlags (C.uint32_t)
+	MMAL_Buffer              (*C.MMAL_BUFFER_HEADER_T)
+	MMAL_Pool                (*C.MMAL_POOL_T)
+	MMAL_Queue               (*C.MMAL_QUEUE_T)
 )
+
+type MMAL_Rect struct {
+	X, Y int32
+	W, H uint32
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // CONSTANTS
@@ -128,22 +145,79 @@ const (
 
 const (
 	// MMAL_PARAMETER_GROUP_COMMON
-	_                                   = iota
-	MMAL_PARAMETER_SUPPORTED_ENCODINGS  // Takes a MMAL_PARAMETER_ENCODING_T
-	MMAL_PARAMETER_URI                  // Takes a MMAL_PARAMETER_URI_T
-	MMAL_PARAMETER_CHANGE_EVENT_REQUEST // Takes a MMAL_PARAMETER_CHANGE_EVENT_REQUEST_T
-	MMAL_PARAMETER_ZERO_COPY            // Takes a MMAL_PARAMETER_BOOLEAN_T
-	MMAL_PARAMETER_BUFFER_REQUIREMENTS  // Takes a MMAL_PARAMETER_BUFFER_REQUIREMENTS_T
-	MMAL_PARAMETER_STATISTICS           // Takes a MMAL_PARAMETER_STATISTICS_T
-	MMAL_PARAMETER_CORE_STATISTICS      // Takes a MMAL_PARAMETER_CORE_STATISTICS_T
-	MMAL_PARAMETER_MEM_USAGE            // Takes a MMAL_PARAMETER_MEM_USAGE_T
-	MMAL_PARAMETER_BUFFER_FLAG_FILTER   // Takes a MMAL_PARAMETER_UINT32_T
-	MMAL_PARAMETER_SEEK                 // Takes a MMAL_PARAMETER_SEEK_T
-	MMAL_PARAMETER_POWERMON_ENABLE      // Takes a MMAL_PARAMETER_BOOLEAN_T
-	MMAL_PARAMETER_LOGGING              // Takes a MMAL_PARAMETER_LOGGING_T
-	MMAL_PARAMETER_SYSTEM_TIME          // Takes a MMAL_PARAMETER_UINT64_T
-	MMAL_PARAMETER_NO_IMAGE_PADDING     // Takes a MMAL_PARAMETER_BOOLEAN_T
-	MMAL_PARAMETER_LOCKSTEP_ENABLE      // Takes a MMAL_PARAMETER_BOOLEAN_T
+	_                                   MMAL_ParameterType = iota
+	MMAL_PARAMETER_SUPPORTED_ENCODINGS                     // Takes a MMAL_PARAMETER_ENCODING_T
+	MMAL_PARAMETER_URI                                     // Takes a MMAL_PARAMETER_URI_T
+	MMAL_PARAMETER_CHANGE_EVENT_REQUEST                    // Takes a MMAL_PARAMETER_CHANGE_EVENT_REQUEST_T
+	MMAL_PARAMETER_ZERO_COPY                               // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_BUFFER_REQUIREMENTS                     // Takes a MMAL_PARAMETER_BUFFER_REQUIREMENTS_T
+	MMAL_PARAMETER_STATISTICS                              // Takes a MMAL_PARAMETER_STATISTICS_T
+	MMAL_PARAMETER_CORE_STATISTICS                         // Takes a MMAL_PARAMETER_CORE_STATISTICS_T
+	MMAL_PARAMETER_MEM_USAGE                               // Takes a MMAL_PARAMETER_MEM_USAGE_T
+	MMAL_PARAMETER_BUFFER_FLAG_FILTER                      // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_SEEK                                    // Takes a MMAL_PARAMETER_SEEK_T
+	MMAL_PARAMETER_POWERMON_ENABLE                         // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_LOGGING                                 // Takes a MMAL_PARAMETER_LOGGING_T
+	MMAL_PARAMETER_SYSTEM_TIME                             // Takes a MMAL_PARAMETER_UINT64_T
+	MMAL_PARAMETER_NO_IMAGE_PADDING                        // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_LOCKSTEP_ENABLE                         // Takes a MMAL_PARAMETER_BOOLEAN_T
+)
+
+const (
+	// MMAL_PARAMETER_GROUP_VIDEO
+	MMAL_PARAMETER_DISPLAYREGION                        MMAL_ParameterType = iota // Takes a MMAL_DISPLAYREGION_T
+	MMAL_PARAMETER_SUPPORTED_PROFILES                                             // Takes a MMAL_PARAMETER_VIDEO_PROFILE_T
+	MMAL_PARAMETER_PROFILE                                                        // Takes a MMAL_PARAMETER_VIDEO_PROFILE_T
+	MMAL_PARAMETER_INTRAPERIOD                                                    // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_RATECONTROL                                                    // Takes a MMAL_PARAMETER_VIDEO_RATECONTROL_T
+	MMAL_PARAMETER_NALUNITFORMAT                                                  // Takes a MMAL_PARAMETER_VIDEO_NALUNITFORMAT_T
+	MMAL_PARAMETER_MINIMISE_FRAGMENTATION                                         // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_MB_ROWS_PER_SLICE                                              // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_VIDEO_LEVEL_EXTENSION                                          // Takes a MMAL_PARAMETER_VIDEO_LEVEL_EXTENSION_T
+	MMAL_PARAMETER_VIDEO_EEDE_ENABLE                                              // Takes a MMAL_PARAMETER_VIDEO_EEDE_ENABLE_T
+	MMAL_PARAMETER_VIDEO_EEDE_LOSSRATE                                            // Takes a MMAL_PARAMETER_VIDEO_EEDE_LOSSRATE_T
+	MMAL_PARAMETER_VIDEO_REQUEST_I_FRAME                                          // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_INTRA_REFRESH                                            // Takes a MMAL_PARAMETER_VIDEO_INTRA_REFRESH_T
+	MMAL_PARAMETER_VIDEO_IMMUTABLE_INPUT                                          // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_BIT_RATE                                                 // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_VIDEO_FRAME_RATE                                               // Takes a MMAL_PARAMETER_FRAME_RATE_T
+	MMAL_PARAMETER_VIDEO_ENCODE_MIN_QUANT                                         // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_VIDEO_ENCODE_MAX_QUANT                                         // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_VIDEO_ENCODE_RC_MODEL                                          // Takes a MMAL_PARAMETER_VIDEO_ENCODE_RC_MODEL_T
+	MMAL_PARAMETER_EXTRA_BUFFERS                                                  // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_VIDEO_ALIGN_HORIZ                                              // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_VIDEO_ALIGN_VERT                                               // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_VIDEO_DROPPABLE_PFRAMES                                        // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_ENCODE_INITIAL_QUANT                                     // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_VIDEO_ENCODE_QP_P                                              // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_VIDEO_ENCODE_RC_SLICE_DQUANT                                   // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_VIDEO_ENCODE_FRAME_LIMIT_BITS                                  // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_VIDEO_ENCODE_PEAK_RATE                                         // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_VIDEO_ENCODE_H264_DISABLE_CABAC                                // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_ENCODE_H264_LOW_LATENCY                                  // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_ENCODE_H264_AU_DELIMITERS                                // Takes a MMAL_PARAMETER_BOOLEAN_
+	MMAL_PARAMETER_VIDEO_ENCODE_H264_DEBLOCK_IDC                                  // Takes a MMAL_PARAMETER_UINT32_
+	MMAL_PARAMETER_VIDEO_ENCODE_H264_MB_INTRA_MODE                                // Takes a MMAL_PARAMETER_VIDEO_ENCODER_H264_MB_INTRA_MODES_T
+	MMAL_PARAMETER_VIDEO_ENCODE_HEADER_ON_OPEN                                    // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_ENCODE_PRECODE_FOR_QP                                    // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_DRM_INIT_INFO                                            // Takes a MMAL_PARAMETER_VIDEO_DRM_INIT_INFO_T
+	MMAL_PARAMETER_VIDEO_TIMESTAMP_FIFO                                           // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_DECODE_ERROR_CONCEALMENT                                 // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_DRM_PROTECT_BUFFER                                       // Takes a MMAL_PARAMETER_VIDEO_DRM_PROTECT_BUFFER_T
+	MMAL_PARAMETER_VIDEO_DECODE_CONFIG_VD3                                        // Takes a MMAL_PARAMETER_BYTES_T
+	MMAL_PARAMETER_VIDEO_ENCODE_H264_VCL_HRD_PARAMETERS                           // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_ENCODE_H264_LOW_DELAY_HRD_FLAG                           // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_ENCODE_INLINE_HEADER                                     // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_ENCODE_SEI_ENABLE                                        // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_ENCODE_INLINE_VECTORS                                    // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_RENDER_STATS                                             // Takes a MMAL_PARAMETER_VIDEO_RENDER_STATS_T
+	MMAL_PARAMETER_VIDEO_INTERLACE_TYPE                                           // Takes a MMAL_PARAMETER_VIDEO_INTERLACE_TYPE_T
+	MMAL_PARAMETER_VIDEO_INTERPOLATE_TIMESTAMPS                                   // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_ENCODE_SPS_TIMING                                        // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_MAX_NUM_CALLBACKS                                        // Takes a MMAL_PARAMETER_UINT32_T
+	MMAL_PARAMETER_VIDEO_SOURCE_PATTERN                                           // Takes a MMAL_PARAMETER_SOURCE_PATTERN_T
+	MMAL_PARAMETER_VIDEO_ENCODE_SEPARATE_NAL_BUFS                                 // Takes a MMAL_PARAMETER_BOOLEAN_T
+	MMAL_PARAMETER_VIDEO_DROPPABLE_PFRAME_LENGTH                                  // Takes a MMAL_PARAMETER_UINT32_T
 )
 
 const (
@@ -171,6 +245,21 @@ const (
 	MMAL_STREAM_COMPARE_FLAG_VIDEO_COLOR_SPACE  MMAL_StreamCompareFlags = 0x1000 // The video color space is different
 	MMAL_STREAM_COMPARE_FLAG_MIN                                        = MMAL_STREAM_COMPARE_FLAG_TYPE
 	MMAL_STREAM_COMPARE_FLAG_MAX                                        = MMAL_STREAM_COMPARE_FLAG_VIDEO_COLOR_SPACE
+)
+
+const (
+	MMAL_DISPLAY_SET_NONE        C.uint32_t = 0x0000
+	MMAL_DISPLAY_SET_NUM         C.uint32_t = 0x0001
+	MMAL_DISPLAY_SET_FULLSCREEN  C.uint32_t = 0x0002
+	MMAL_DISPLAY_SET_TRANSFORM   C.uint32_t = 0x0004
+	MMAL_DISPLAY_SET_DEST_RECT   C.uint32_t = 0x0008
+	MMAL_DISPLAY_SET_SRC_RECT    C.uint32_t = 0x0010
+	MMAL_DISPLAY_SET_MODE        C.uint32_t = 0x0020
+	MMAL_DISPLAY_SET_PIXEL       C.uint32_t = 0x0040
+	MMAL_DISPLAY_SET_NOASPECT    C.uint32_t = 0x0080
+	MMAL_DISPLAY_SET_LAYER       C.uint32_t = 0x0100
+	MMAL_DISPLAY_SET_COPYPROTECT C.uint32_t = 0x0200
+	MMAL_DISPLAY_SET_ALPHA       C.uint32_t = 0x0400
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -282,6 +371,103 @@ func mmal_component_port_at_index(array **C.MMAL_PORT_T, num, index uint) MMAL_P
 	sliceHeader.Len = int(num)
 	sliceHeader.Data = uintptr(unsafe.Pointer(array))
 	return handles[index]
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// PUBLIC METHODS - POOLS
+
+func MMALPortPoolCreate(handle MMAL_PortHandle, num, payload_size uint32) (MMAL_Pool, error) {
+	if pool := C.mmal_port_pool_create(handle, C.uint32_t(num), C.uint32_t(payload_size)); pool == nil {
+		return nil, MMAL_EINVAL
+	} else {
+		C.mmal_pool_callback_set(pool, C.MMAL_POOL_BH_CB_T(C.mmal_bh_release_callback), nil)
+		return pool, nil
+	}
+}
+
+func MMALPortPoolDestroy(handle MMAL_PortHandle, pool MMAL_Pool) error {
+	C.mmal_port_pool_destroy(handle, pool)
+	return nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// PUBLIC METHODS - QUEUES
+/*
+func MMALPortQueueCreate(handle MMAL_PortHandle) (MMAL_Pool, error) {
+	if pool := C.mmal_port_pool_create(handle, C.uint32_t(num), C.uint32_t(payload_size)); pool == nil {
+		return nil, MMAL_EINVAL
+	} else {
+		C.mmal_pool_callback_set(pool, C.mmal_bh_release_callback, nil)
+		return pool, nil
+	}
+}
+
+func MMALPortQueueDestroy(handle MMAL_PortHandle, pool MMAL_Pool) error {
+	C.mmal_port_pool_destroy(handle, pool)
+	return nil
+}
+*/
+
+////////////////////////////////////////////////////////////////////////////////
+// PUBLIC METHODS - CONNECTIONS
+
+func MMALPortConnectionCreate(handle *MMAL_PortConnection, output_port, input_port MMAL_PortHandle, flags hw.MMALPortConnectionFlags) error {
+	var cHandle (*C.MMAL_CONNECTION_T)
+	if status := MMAL_Status(C.mmal_connection_create(&cHandle, output_port, input_port, C.uint(flags))); status == MMAL_SUCCESS {
+		*handle = MMAL_PortConnection(cHandle)
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortConnectionAcquire(handle MMAL_PortConnection) error {
+	C.mmal_connection_acquire(handle)
+	return nil
+}
+
+func MMALPortConnectionRelease(handle MMAL_PortConnection) error {
+	if status := MMAL_Status(C.mmal_connection_release(handle)); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortConnectionDestroy(handle MMAL_PortConnection) error {
+	if status := MMAL_Status(C.mmal_connection_destroy(handle)); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortConnectionEnable(handle MMAL_PortConnection) error {
+	if status := MMAL_Status(C.mmal_connection_enable(handle)); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortConnectionDisable(handle MMAL_PortConnection) error {
+	if status := MMAL_Status(C.mmal_connection_disable(handle)); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortConnectionEventFormatChanged(handle MMAL_PortConnection, buffer MMAL_Buffer) error {
+	if status := MMAL_Status(C.mmal_connection_event_format_changed(handle, buffer)); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortConnectionEnabled(handle MMAL_PortConnection) bool {
+	return (handle.is_enabled != 0)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -413,6 +599,27 @@ func MMALPortParameterAllocGet(handle MMAL_PortHandle, name MMAL_ParameterType, 
 
 func MMALPortParameterAllocFree(handle MMAL_ParameterHandle) {
 	C.mmal_port_parameter_free(handle)
+}
+
+func MMALPortParameterSetDisplayRegion(handle MMAL_PortHandle, name MMAL_ParameterType, value MMAL_DisplayRegion) error {
+	if status := MMAL_Status(C.mmal_util_set_display_region(handle, value)); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortParameterGetDisplayRegion(handle MMAL_PortHandle, name MMAL_ParameterType) (MMAL_DisplayRegion, error) {
+	var value (C.MMAL_DISPLAYREGION_T)
+	value.hdr.id = C.uint(name)
+	value.hdr.size = C.uint(unsafe.Sizeof(C.MMAL_DISPLAYREGION_T{}))
+	if status := MMAL_Status(C.mmal_port_parameter_get(handle, &value.hdr)); status == MMAL_SUCCESS {
+		display_region := MMAL_DisplayRegion(&value)
+		display_region.set = MMAL_DISPLAY_SET_NONE
+		return display_region, nil
+	} else {
+		return nil, status
+	}
 }
 
 func MMALPortParameterSetBool(handle MMAL_PortHandle, name MMAL_ParameterType, value bool) error {
@@ -595,6 +802,94 @@ func MMALStreamFormatType(handle MMAL_StreamFormat) MMAL_StreamType {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// DISPLAY REGION
+
+func MMALDisplayRegionGetDisplayNum(handle MMAL_DisplayRegion) uint32 {
+	return uint32(handle.display_num)
+}
+
+func MMALDisplayRegionGetFullScreen(handle MMAL_DisplayRegion) bool {
+	return handle.fullscreen != 0
+}
+
+func MMALDisplayRegionSetFullScreen(handle MMAL_DisplayRegion, value bool) {
+	handle.fullscreen = mmal_to_bool(value)
+	handle.set |= MMAL_DISPLAY_SET_FULLSCREEN
+}
+
+func MMALDisplayRegionGetLayer(handle MMAL_DisplayRegion) int32 {
+	return int32(handle.layer)
+}
+
+func MMALDisplayRegionGetAlpha(handle MMAL_DisplayRegion) uint32 {
+	return uint32(handle.alpha)
+}
+
+func MMALDisplayRegionSetLayer(handle MMAL_DisplayRegion, value int32) {
+	handle.layer = C.int32_t(value)
+	handle.set |= MMAL_DISPLAY_SET_LAYER
+}
+
+func MMALDisplayRegionSetAlpha(handle MMAL_DisplayRegion, value uint32) {
+	handle.alpha = C.uint32_t(value)
+	handle.set |= MMAL_DISPLAY_SET_ALPHA
+}
+
+func MMALDisplayRegionGetTransform(handle MMAL_DisplayRegion) hw.MMALDisplayTransform {
+	return hw.MMALDisplayTransform(handle.transform)
+}
+
+func MMALDisplayRegionGetMode(handle MMAL_DisplayRegion) hw.MMALDisplayMode {
+	return hw.MMALDisplayMode(handle.mode)
+}
+
+func MMALDisplayRegionSetTransform(handle MMAL_DisplayRegion, value hw.MMALDisplayTransform) {
+	handle.transform = C.MMAL_DISPLAYTRANSFORM_T(value)
+	handle.set |= MMAL_DISPLAY_SET_TRANSFORM
+}
+
+func MMALDisplayRegionSetMode(handle MMAL_DisplayRegion, value hw.MMALDisplayMode) {
+	handle.mode = C.MMAL_DISPLAYMODE_T(value)
+	handle.set |= MMAL_DISPLAY_SET_MODE
+}
+
+func MMALDisplayRegionGetNoAspect(handle MMAL_DisplayRegion) bool {
+	return handle.noaspect != 0
+}
+
+func MMALDisplayRegionGetCopyProtect(handle MMAL_DisplayRegion) bool {
+	return handle.copyprotect_required != 0
+}
+
+func MMALDisplayRegionSetNoAspect(handle MMAL_DisplayRegion, value bool) {
+	handle.noaspect = mmal_to_bool(value)
+	handle.set |= MMAL_DISPLAY_SET_NOASPECT
+}
+
+func MMALDisplayRegionSetCopyProtect(handle MMAL_DisplayRegion, value bool) {
+	handle.copyprotect_required = mmal_to_bool(value)
+	handle.set |= MMAL_DISPLAY_SET_COPYPROTECT
+}
+
+func MMALDisplayRegionGetDestRect(handle MMAL_DisplayRegion) MMAL_Rect {
+	return MMAL_Rect{int32(handle.dest_rect.x), int32(handle.dest_rect.y), uint32(handle.dest_rect.width), uint32(handle.dest_rect.height)}
+}
+
+func MMALDisplayRegionGetSrcRect(handle MMAL_DisplayRegion) MMAL_Rect {
+	return MMAL_Rect{int32(handle.src_rect.x), int32(handle.src_rect.y), uint32(handle.src_rect.width), uint32(handle.src_rect.height)}
+}
+
+func MMALDisplayRegionSetDestRect(handle MMAL_DisplayRegion, value MMAL_Rect) {
+	handle.dest_rect = C.MMAL_RECT_T{C.int32_t(value.X), C.int32_t(value.Y), C.int32_t(value.W), C.int32_t(value.H)}
+	handle.set |= MMAL_DISPLAY_SET_DEST_RECT
+}
+
+func MMALDisplayRegionSetSrcRect(handle MMAL_DisplayRegion, value MMAL_Rect) {
+	handle.src_rect = C.MMAL_RECT_T{C.int32_t(value.X), C.int32_t(value.Y), C.int32_t(value.W), C.int32_t(value.H)}
+	handle.set |= MMAL_DISPLAY_SET_SRC_RECT
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // STRINGIFY
 
 func (s MMAL_Status) String() string {
@@ -735,6 +1030,15 @@ func (f MMAL_StreamCompareFlags) String() string {
 func mmal_port_callback(port *C.MMAL_PORT_T, buffer *C.MMAL_BUFFER_HEADER_T) {
 	fmt.Printf("mmal_port_callback port=%v buffer=%v\n", port, buffer)
 }
+
+//export mmal_bh_release_callback
+func mmal_bh_release_callback(pool *C.MMAL_POOL_T, buffer *C.MMAL_BUFFER_HEADER_T, userdata unsafe.Pointer) C.MMAL_BOOL_T {
+	fmt.Printf("mmal_bh_release_callback pool=%v buffer=%v userdata=%v\n", pool, buffer, userdata)
+	return MMAL_BOOL_FALSE
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// PRIVATE METHODS - OTHER
 
 func mmal_to_bool(value bool) C.MMAL_BOOL_T {
 	if value {

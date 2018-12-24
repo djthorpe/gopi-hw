@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
 	// Frameworks
 	gopi "github.com/djthorpe/gopi"
@@ -32,32 +31,25 @@ func Main(app *gopi.AppInstance, done chan<- struct{}) error {
 
 	if mmal := app.ModuleInstance("hw/mmal").(hw.MMAL); mmal == nil {
 		return errors.New("Missing MMAL module")
-	} else if component, err := mmal.ComponentWithName("vc.ril.video_encode"); err != nil {
+	} else if camera, err := mmal.ComponentWithName("vc.ril.camera"); err != nil {
+		return err
+	} else if renderer, err := mmal.ComponentWithName("vc.ril.video_render"); err != nil {
+		return err
+	} else if c, err := mmal.Connect(renderer.Input()[0], camera.Output()[0], hw.MMAL_CONNECTION_FLAG_ALLOCATION_ON_INPUT|hw.MMAL_CONNECTION_FLAG_TUNNELLING); err != nil {
+		return err
+	} else if display_region, err := c.Input().GetDisplayRegion(); err != nil {
 		return err
 	} else {
-		fmt.Println("COMPONENT NAME", component.Name())
-		for _, port := range component.Input() {
-			fmt.Println("  INPUT NAME", port.Name())
-			fmt.Println("     ENABLED", port.Enabled())
-			if encodings, err := port.SupportedEncodings(); err != nil {
-				return err
-			} else if len(encodings) > 0 {
-				encodings_string := ""
-				for _, encoding := range encodings {
-					encodings_string += fmt.Sprintf("%v,", encoding)
-				}
-				fmt.Println("     ENCODINGS", strings.Trim(encodings_string, ","))
-			}
-			if value, err := port.ZeroCopy(); err != nil {
-				return err
-			} else {
-				fmt.Println("     ZEROCOPY", value)
-			}
-			if uri, err := port.Uri(); err != nil {
-				return err
-			} else {
-				fmt.Println("     URI", uri)
-			}
+		display_region.SetFullScreen(true)
+		display_region.SetTransform(hw.MMAL_DISPLAY_TRANSFORM_ROT180_MIRROR)
+		display_region.SetAlpha(0x50)
+		if err := c.Input().SetDisplayRegion(display_region); err != nil {
+			return err
+		} else if err := c.SetEnabled(true); err != nil {
+			return err
+		} else {
+			fmt.Println("Press CTRL+C to exit")
+			app.WaitForSignal()
 		}
 	}
 
