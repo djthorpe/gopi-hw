@@ -100,6 +100,8 @@ func (this *component) Enabled() bool {
 }
 
 func (this *component) SetEnabled(value bool) error {
+	this.log.Debug2("<sys.hw.mmal.component>SetEnabled{ name='%v' value=%v }", this.Name(), value)
+
 	if this.handle == nil {
 		// Component is not open
 		return gopi.ErrOutOfOrder
@@ -111,6 +113,8 @@ func (this *component) SetEnabled(value bool) error {
 }
 
 func (this *component) Acquire() error {
+	this.log.Debug2("<sys.hw.mmal.component>Acquire{ name='%v' }", this.Name())
+
 	if this.handle == nil {
 		// Component is not open
 		return gopi.ErrOutOfOrder
@@ -120,6 +124,8 @@ func (this *component) Acquire() error {
 }
 
 func (this *component) Release() error {
+	this.log.Debug2("<sys.hw.mmal.component>Release{ name='%v' }", this.Name())
+
 	if this.handle == nil {
 		// Component is not open
 		return gopi.ErrOutOfOrder

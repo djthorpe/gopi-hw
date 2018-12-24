@@ -104,10 +104,19 @@ type MMALCommonParameters interface {
 	SupportedEncodings() ([]MMALEncodingType, error)
 	Uri() (string, error)
 	ZeroCopy() (bool, error)
+	NoImagePadding() (bool, error)
+	LockstepEnable() (bool, error)
+	PowermonEnable() (bool, error)
+	BufferFlagFilter() (uint32, error)
+	SystemTime() (uint64, error)
 
 	// Set Parameters
 	SetUri(value string) error
 	SetZeroCopy(value bool) error
+	SetNoImagePadding(value bool) error
+	SetLockstepEnable(value bool) error
+	SetPowermonEnable(value bool) error
+	SetBufferFlagFilter(value uint32) error
 }
 
 type MMALVideoParameters interface {

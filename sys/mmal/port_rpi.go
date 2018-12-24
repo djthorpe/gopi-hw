@@ -39,6 +39,8 @@ func (this *port) Enabled() bool {
 }
 
 func (this *port) SetEnabled(value bool) error {
+	this.log.Debug2("<sys.hw.mmal.port>SetEnabled{ name='%v' value=%v }", this.Name(), value)
+
 	if value {
 		return rpi.MMALPortEnable(this.handle)
 	} else {
@@ -47,6 +49,8 @@ func (this *port) SetEnabled(value bool) error {
 }
 
 func (this *port) Flush() error {
+	this.log.Debug2("<sys.hw.mmal.port>Flush{ name='%v' }", this.Name())
+
 	return rpi.MMALPortFlush(this.handle)
 }
 
@@ -63,10 +67,12 @@ func (this *port) CapabilitySupportsEventFormatChange() bool {
 }
 
 func (this *port) CommitFormatChange() error {
+	this.log.Debug2("<sys.hw.mmal.port>CommitFormatChange{ name='%v' }", this.Name())
 	return rpi.MMALPortFormatCommit(this.handle)
 }
 
 func (this *port) Connect(other hw.MMALPort) error {
+	this.log.Debug2("<sys.hw.mmal.port>Connect{ name='%v' other='%v' }", this.Name(), other.Name())
 	if other_, ok := other.(*port); ok == false {
 		return gopi.ErrBadParameter
 	} else {
@@ -75,6 +81,7 @@ func (this *port) Connect(other hw.MMALPort) error {
 }
 
 func (this *port) Disconnect() error {
+	this.log.Debug2("<sys.hw.mmal.port>Disconnect{ name='%v' }", this.Name())
 	return rpi.MMALPortDisconnect(this.handle)
 }
 
