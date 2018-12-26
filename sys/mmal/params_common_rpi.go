@@ -131,7 +131,6 @@ func (this *port) SetSeek(offset int64, precise, forward bool) error {
 
 /*
 TODO:
-
 MMAL_PARAMETER_CHANGE_EVENT_REQUEST                                          // Takes a MMAL_PARAMETER_CHANGE_EVENT_REQUEST_T
 MMAL_PARAMETER_BUFFER_REQUIREMENTS                                           // Takes a MMAL_PARAMETER_BUFFER_REQUIREMENTS_T
 MMAL_PARAMETER_STATISTICS                                                    // Takes a MMAL_PARAMETER_STATISTICS_T

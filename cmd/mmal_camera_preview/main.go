@@ -33,7 +33,7 @@ func RendererInputPort(mmal hw.MMAL) (hw.MMALPort, error) {
 		return nil, err
 	} else if port := renderer.Input()[0]; port == nil {
 		return nil, gopi.ErrBadParameter
-	} else if display_region, err := port.GetDisplayRegion(); err != nil {
+	} else if display_region, err := port.DisplayRegion(); err != nil {
 		return nil, err
 	} else {
 		display_region.SetFullScreen(true)
@@ -52,7 +52,15 @@ func CameraOutputPort(mmal hw.MMAL) (hw.MMALPort, error) {
 		return nil, err
 	} else if port := camera.Output()[0]; port == nil {
 		return nil, gopi.ErrBadParameter
+	} else if annotation, err := camera.Control().Annotation(); err != nil {
+		return nil, err
 	} else {
+		annotation.SetText("Hello, world")
+		annotation.SetTextSize(24)
+		fmt.Println(annotation)
+		if err := camera.Control().SetAnnotation(annotation); err != nil {
+			return nil, err
+		}
 		return port, nil
 	}
 }

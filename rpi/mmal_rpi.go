@@ -16,6 +16,8 @@ import (
 	"reflect"
 	"unsafe"
 
+	"github.com/djthorpe/gopi"
+
 	// Frameworks
 	hw "github.com/djthorpe/gopi-hw"
 )
@@ -59,6 +61,10 @@ type (
 	MMAL_ParameterHandle     (*C.MMAL_PARAMETER_HEADER_T)
 	MMAL_ParameterType       uint
 	MMAL_ParameterSeek       (C.MMAL_PARAMETER_SEEK_T)
+	MMAL_CameraInfo          (*C.MMAL_PARAMETER_CAMERA_INFO_T)
+	MMAL_CameraFlash         (C.MMAL_PARAMETER_CAMERA_INFO_FLASH_TYPE_T)
+	MMAL_Camera              (C.MMAL_PARAMETER_CAMERA_INFO_CAMERA_T)
+	MMAL_CameraAnnotation    (*C.MMAL_PARAMETER_CAMERA_ANNOTATE_V4_T)
 )
 
 type MMAL_Rect struct {
@@ -395,14 +401,148 @@ func MMALPortSetDisplayRegion(handle MMAL_PortHandle, value MMAL_DisplayRegion) 
 func MMALPortParameterAllocGet(handle MMAL_PortHandle, name MMAL_ParameterType, size uint32) (MMAL_ParameterHandle, error) {
 	var err C.MMAL_STATUS_T
 	if param := C.mmal_port_parameter_alloc_get(handle, C.uint32_t(name), C.uint32_t(size), &err); MMAL_Status(err) != MMAL_SUCCESS {
+		fmt.Println("ERROR")
 		return nil, MMAL_Status(err)
 	} else {
+		fmt.Println(param)
 		return param, nil
 	}
 }
 
 func MMALPortParameterAllocFree(handle MMAL_ParameterHandle) {
 	C.mmal_port_parameter_free(handle)
+}
+
+func MMALPortParameterSetBool(handle MMAL_PortHandle, name MMAL_ParameterType, value bool) error {
+	if status := MMAL_Status(C.mmal_port_parameter_set_boolean(handle, C.uint32_t(name), mmal_to_bool(value))); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortParameterGetBool(handle MMAL_PortHandle, name MMAL_ParameterType) (bool, error) {
+	var value C.MMAL_BOOL_T
+	if status := MMAL_Status(C.mmal_port_parameter_get_boolean(handle, C.uint32_t(name), &value)); status == MMAL_SUCCESS {
+		return value != C.MMAL_BOOL_T(0), nil
+	} else {
+		return false, status
+	}
+}
+
+func MMALPortParameterSetUint64(handle MMAL_PortHandle, name MMAL_ParameterType, value uint64) error {
+	if status := MMAL_Status(C.mmal_port_parameter_set_uint64(handle, C.uint32_t(name), C.uint64_t(value))); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortParameterGetUint64(handle MMAL_PortHandle, name MMAL_ParameterType) (uint64, error) {
+	var value C.uint64_t
+	if status := MMAL_Status(C.mmal_port_parameter_get_uint64(handle, C.uint32_t(name), &value)); status == MMAL_SUCCESS {
+		return uint64(value), nil
+	} else {
+		return 0, status
+	}
+}
+
+func MMALPortParameterSetInt64(handle MMAL_PortHandle, name MMAL_ParameterType, value int64) error {
+	if status := MMAL_Status(C.mmal_port_parameter_set_int64(handle, C.uint32_t(name), C.int64_t(value))); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortParameterGetInt64(handle MMAL_PortHandle, name MMAL_ParameterType) (int64, error) {
+	var value C.int64_t
+	if status := MMAL_Status(C.mmal_port_parameter_get_int64(handle, C.uint32_t(name), &value)); status == MMAL_SUCCESS {
+		return int64(value), nil
+	} else {
+		return 0, status
+	}
+}
+
+func MMALPortParameterSetUint32(handle MMAL_PortHandle, name MMAL_ParameterType, value uint32) error {
+	if status := MMAL_Status(C.mmal_port_parameter_set_uint32(handle, C.uint32_t(name), C.uint32_t(value))); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortParameterGetUint32(handle MMAL_PortHandle, name MMAL_ParameterType) (uint32, error) {
+	var value C.uint32_t
+	if status := MMAL_Status(C.mmal_port_parameter_get_uint32(handle, C.uint32_t(name), &value)); status == MMAL_SUCCESS {
+		return uint32(value), nil
+	} else {
+		return 0, status
+	}
+}
+
+func MMALPortParameterSetInt32(handle MMAL_PortHandle, name MMAL_ParameterType, value int32) error {
+	if status := MMAL_Status(C.mmal_port_parameter_set_int32(handle, C.uint32_t(name), C.int32_t(value))); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortParameterGetInt32(handle MMAL_PortHandle, name MMAL_ParameterType) (int32, error) {
+	var value C.int32_t
+	if status := MMAL_Status(C.mmal_port_parameter_get_int32(handle, C.uint32_t(name), &value)); status == MMAL_SUCCESS {
+		return int32(value), nil
+	} else {
+		return 0, status
+	}
+}
+
+func MMALPortParameterSetString(handle MMAL_PortHandle, name MMAL_ParameterType, value string) error {
+	cValue := C.CString(value)
+	defer C.free(unsafe.Pointer(cValue))
+	if status := MMAL_Status(C.mmal_port_parameter_set_string(handle, C.uint32_t(name), cValue)); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortParameterSetBytes(handle MMAL_PortHandle, name MMAL_ParameterType, value []byte) error {
+	ptr := (*C.uint8_t)(unsafe.Pointer(&value[0]))
+	len := len(value)
+	if status := MMAL_Status(C.mmal_port_parameter_set_bytes(handle, C.uint32_t(name), ptr, C.uint(len))); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortParameterSetRational(handle MMAL_PortHandle, name MMAL_ParameterType, value hw.MMALRationalNum) error {
+	value_ := C.MMAL_RATIONAL_T{C.int32_t(value.Num), C.int32_t(value.Den)}
+	if status := MMAL_Status(C.mmal_port_parameter_set_rational(handle, C.uint32_t(name), value_)); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortParameterGetRational(handle MMAL_PortHandle, name MMAL_ParameterType) (hw.MMALRationalNum, error) {
+	var value C.MMAL_RATIONAL_T
+	if status := MMAL_Status(C.mmal_port_parameter_get_rational(handle, C.uint32_t(name), &value)); status == MMAL_SUCCESS {
+		return hw.MMALRationalNum{int32(value.num), int32(value.den)}, nil
+	} else {
+		return hw.MMALRationalNum{}, status
+	}
+}
+
+func MMALPortParameterSetSeek(handle MMAL_PortHandle, name MMAL_ParameterType, value MMAL_ParameterSeek) error {
+	value.hdr.id = C.uint32_t(name)
+	if status := MMAL_Status(C.mmal_port_parameter_set(handle, (*C.MMAL_PARAMETER_HEADER_T)(&value.hdr))); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
 }
 
 func MMALPortParameterSetDisplayRegion(handle MMAL_PortHandle, name MMAL_ParameterType, value MMAL_DisplayRegion) error {
@@ -415,8 +555,8 @@ func MMALPortParameterSetDisplayRegion(handle MMAL_PortHandle, name MMAL_Paramet
 
 func MMALPortParameterGetDisplayRegion(handle MMAL_PortHandle, name MMAL_ParameterType) (MMAL_DisplayRegion, error) {
 	var value (C.MMAL_DISPLAYREGION_T)
-	value.hdr.id = C.uint(name)
-	value.hdr.size = C.uint(unsafe.Sizeof(C.MMAL_DISPLAYREGION_T{}))
+	value.hdr.id = C.uint32_t(name)
+	value.hdr.size = C.uint32_t(unsafe.Sizeof(C.MMAL_DISPLAYREGION_T{}))
 	if status := MMAL_Status(C.mmal_port_parameter_get(handle, &value.hdr)); status == MMAL_SUCCESS {
 		display_region := MMAL_DisplayRegion(&value)
 		display_region.set = MMAL_DISPLAY_SET_NONE
@@ -426,131 +566,93 @@ func MMALPortParameterGetDisplayRegion(handle MMAL_PortHandle, name MMAL_Paramet
 	}
 }
 
-func MMALPortParameterSetBool(handle MMAL_PortHandle, name MMAL_ParameterType, value bool) error {
-	if status := MMAL_Status(C.mmal_port_parameter_set_boolean(handle, C.uint(name), mmal_to_bool(value))); status == MMAL_SUCCESS {
-		return nil
-	} else {
-		return status
-	}
-}
-
-func MMALPortParameterGetBool(handle MMAL_PortHandle, name MMAL_ParameterType) (bool, error) {
-	var value C.MMAL_BOOL_T
-	if status := MMAL_Status(C.mmal_port_parameter_get_boolean(handle, C.uint(name), &value)); status == MMAL_SUCCESS {
-		return value != C.MMAL_BOOL_T(0), nil
-	} else {
-		return false, status
-	}
-}
-
-func MMALPortParameterSetUint64(handle MMAL_PortHandle, name MMAL_ParameterType, value uint64) error {
-	if status := MMAL_Status(C.mmal_port_parameter_set_uint64(handle, C.uint(name), C.uint64_t(value))); status == MMAL_SUCCESS {
-		return nil
-	} else {
-		return status
-	}
-}
-
-func MMALPortParameterGetUint64(handle MMAL_PortHandle, name MMAL_ParameterType) (uint64, error) {
-	var value C.uint64_t
-	if status := MMAL_Status(C.mmal_port_parameter_get_uint64(handle, C.uint(name), &value)); status == MMAL_SUCCESS {
-		return uint64(value), nil
-	} else {
-		return 0, status
-	}
-}
-
-func MMALPortParameterSetInt64(handle MMAL_PortHandle, name MMAL_ParameterType, value int64) error {
-	if status := MMAL_Status(C.mmal_port_parameter_set_int64(handle, C.uint(name), C.int64_t(value))); status == MMAL_SUCCESS {
-		return nil
-	} else {
-		return status
-	}
-}
-
-func MMALPortParameterGetInt64(handle MMAL_PortHandle, name MMAL_ParameterType) (int64, error) {
-	var value C.int64_t
-	if status := MMAL_Status(C.mmal_port_parameter_get_int64(handle, C.uint(name), &value)); status == MMAL_SUCCESS {
-		return int64(value), nil
-	} else {
-		return 0, status
-	}
-}
-
-func MMALPortParameterSetUint32(handle MMAL_PortHandle, name MMAL_ParameterType, value uint32) error {
-	if status := MMAL_Status(C.mmal_port_parameter_set_uint32(handle, C.uint(name), C.uint32_t(value))); status == MMAL_SUCCESS {
-		return nil
-	} else {
-		return status
-	}
-}
-
-func MMALPortParameterGetUint32(handle MMAL_PortHandle, name MMAL_ParameterType) (uint32, error) {
-	var value C.uint32_t
-	if status := MMAL_Status(C.mmal_port_parameter_get_uint32(handle, C.uint(name), &value)); status == MMAL_SUCCESS {
-		return uint32(value), nil
-	} else {
-		return 0, status
-	}
-}
-
-func MMALPortParameterSetInt32(handle MMAL_PortHandle, name MMAL_ParameterType, value int32) error {
-	if status := MMAL_Status(C.mmal_port_parameter_set_int32(handle, C.uint(name), C.int32_t(value))); status == MMAL_SUCCESS {
-		return nil
-	} else {
-		return status
-	}
-}
-
-func MMALPortParameterGetInt32(handle MMAL_PortHandle, name MMAL_ParameterType) (int32, error) {
-	var value C.int32_t
-	if status := MMAL_Status(C.mmal_port_parameter_get_int32(handle, C.uint(name), &value)); status == MMAL_SUCCESS {
-		return int32(value), nil
-	} else {
-		return 0, status
-	}
-}
-
-func MMALPortParameterSetString(handle MMAL_PortHandle, name MMAL_ParameterType, value string) error {
-	cValue := C.CString(value)
-	defer C.free(unsafe.Pointer(cValue))
-	if status := MMAL_Status(C.mmal_port_parameter_set_string(handle, C.uint(name), cValue)); status == MMAL_SUCCESS {
-		return nil
-	} else {
-		return status
-	}
-}
-
-func MMALPortParameterSetBytes(handle MMAL_PortHandle, name MMAL_ParameterType, value []byte) error {
-	ptr := (*C.uint8_t)(unsafe.Pointer(&value[0]))
-	len := len(value)
-	if status := MMAL_Status(C.mmal_port_parameter_set_bytes(handle, C.uint(name), ptr, C.uint(len))); status == MMAL_SUCCESS {
-		return nil
-	} else {
-		return status
-	}
-}
-
-func MMALPortParameterSetRational(handle MMAL_PortHandle, name MMAL_ParameterType, value MMAL_Rational) error {
-	if status := MMAL_Status(C.mmal_port_parameter_set_rational(handle, C.uint(name), C.MMAL_RATIONAL_T(value))); status == MMAL_SUCCESS {
-		return nil
-	} else {
-		return status
-	}
-}
-
-func MMALPortParameterGetRational(handle MMAL_PortHandle, name MMAL_ParameterType) (MMAL_Rational, error) {
-	var value C.MMAL_RATIONAL_T
-	if status := MMAL_Status(C.mmal_port_parameter_get_rational(handle, C.uint(name), &value)); status == MMAL_SUCCESS {
-		return MMAL_Rational(value), nil
-	} else {
-		return MMAL_Rational(value), status
-	}
-}
-
-func MMALPortParameterSetSeek(handle MMAL_PortHandle, name MMAL_ParameterType, value MMAL_ParameterSeek) error {
+func MMALPortParameterGetVideoProfile(handle MMAL_PortHandle, name MMAL_ParameterType) (hw.MMALVideoProfile, error) {
+	var value (C.MMAL_PARAMETER_VIDEO_PROFILE_T)
 	value.hdr.id = C.uint32_t(name)
-	if status := MMAL_Status(C.mmal_port_parameter_set(handle, (*C.MMAL_PARAMETER_HEADER_T)(&value.hdr))); status == MMAL_SUCCESS {
+	value.hdr.size = C.uint32_t(unsafe.Sizeof(C.MMAL_PARAMETER_VIDEO_PROFILE_T{}))
+	if status := MMAL_Status(C.mmal_port_parameter_get(handle, &value.hdr)); status == MMAL_SUCCESS {
+		return hw.MMALVideoProfile{hw.MMALVideoEncProfile(value.profile[0].profile), hw.MMALVideoEncLevel(value.profile[0].level)}, nil
+	} else {
+		return hw.MMALVideoProfile{}, status
+	}
+}
+
+func MMALPortParameterSetVideoProfile(handle MMAL_PortHandle, name MMAL_ParameterType, value hw.MMALVideoProfile) error {
+	var value_ (C.MMAL_PARAMETER_VIDEO_PROFILE_T)
+	value_.hdr.id = C.uint32_t(name)
+	value_.hdr.size = C.uint32_t(unsafe.Sizeof(C.MMAL_PARAMETER_VIDEO_PROFILE_T{}))
+	value_.profile[0].profile = C.MMAL_VIDEO_PROFILE_T(value.Profile)
+	value_.profile[0].level = C.MMAL_VIDEO_LEVEL_T(value.Level)
+	if status := MMAL_Status(C.mmal_port_parameter_set(handle, &value_.hdr)); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALParamGetArrayVideoProfile(handle MMAL_ParameterHandle) []hw.MMALVideoProfile {
+	fmt.Println("<TODO> SIZE=", handle.size)
+	return []hw.MMALVideoProfile{}
+}
+
+func MMALPortParameterGetCameraInfo(handle MMAL_PortHandle, name MMAL_ParameterType) (MMAL_CameraInfo, error) {
+	var value (C.MMAL_PARAMETER_CAMERA_INFO_T)
+	value.hdr.id = C.uint32_t(name)
+	value.hdr.size = C.uint32_t(unsafe.Sizeof(C.MMAL_PARAMETER_CAMERA_INFO_T{}))
+	if status := MMAL_Status(C.mmal_port_parameter_get(handle, &value.hdr)); status == MMAL_SUCCESS {
+		return MMAL_CameraInfo(&value), nil
+	} else {
+		return nil, status
+	}
+}
+
+func MMALPortParameterGetCameraMeteringMode(handle MMAL_PortHandle, name MMAL_ParameterType) (hw.MMALCameraMeteringMode, error) {
+	return 0, gopi.ErrNotImplemented
+}
+
+func MMALPortParameterSetCameraMeteringMode(handle MMAL_PortHandle, name MMAL_ParameterType, value hw.MMALCameraMeteringMode) error {
+	return gopi.ErrNotImplemented
+}
+
+func MMALPortParameterGetCameraExposureMode(handle MMAL_PortHandle, name MMAL_ParameterType) (hw.MMALCameraExposureMode, error) {
+	var value (C.MMAL_PARAMETER_EXPOSUREMODE_T)
+	value.hdr.id = C.uint32_t(name)
+	value.hdr.size = C.uint32_t(unsafe.Sizeof(C.MMAL_PARAMETER_EXPOSUREMODE_T{}))
+	if status := MMAL_Status(C.mmal_port_parameter_get(handle, &value.hdr)); status == MMAL_SUCCESS {
+		return hw.MMALCameraExposureMode(value.value), nil
+	} else {
+		return 0, status
+	}
+}
+
+func MMALPortParameterSetCameraExposureMode(handle MMAL_PortHandle, name MMAL_ParameterType, value hw.MMALCameraExposureMode) error {
+	var value_ (C.MMAL_PARAMETER_EXPOSUREMODE_T)
+	value_.hdr.id = C.uint32_t(name)
+	value_.hdr.size = C.uint32_t(unsafe.Sizeof(C.MMAL_PARAMETER_EXPOSUREMODE_T{}))
+	value_.value = C.MMAL_PARAM_EXPOSUREMODE_T(value)
+	if status := MMAL_Status(C.mmal_port_parameter_set(handle, &value_.hdr)); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPortParameterGetCameraAnnotation(handle MMAL_PortHandle, name MMAL_ParameterType) (MMAL_CameraAnnotation, error) {
+	var value (C.MMAL_PARAMETER_CAMERA_ANNOTATE_V4_T)
+	value.hdr.id = C.uint32_t(name)
+	value.hdr.size = C.uint32_t(unsafe.Sizeof(C.MMAL_PARAMETER_CAMERA_ANNOTATE_V4_T{}))
+	if status := MMAL_Status(C.mmal_port_parameter_get(handle, &value.hdr)); status == MMAL_SUCCESS {
+		return MMAL_CameraAnnotation(&value), nil
+	} else {
+		return nil, status
+	}
+}
+
+func MMALPortParameterSetCameraAnnotation(handle MMAL_PortHandle, name MMAL_ParameterType, value MMAL_CameraAnnotation) error {
+	var value_ (C.MMAL_PARAMETER_CAMERA_ANNOTATE_V4_T)
+	value_.hdr.id = C.uint32_t(name)
+	value_.hdr.size = C.uint32_t(unsafe.Sizeof(C.MMAL_PARAMETER_CAMERA_ANNOTATE_V4_T{}))
+	if status := MMAL_Status(C.mmal_port_parameter_set(handle, &value_.hdr)); status == MMAL_SUCCESS {
 		return nil
 	} else {
 		return status
@@ -700,6 +802,153 @@ func MMALDisplayRegionSetDestRect(handle MMAL_DisplayRegion, value MMAL_Rect) {
 func MMALDisplayRegionSetSrcRect(handle MMAL_DisplayRegion, value MMAL_Rect) {
 	handle.src_rect = C.MMAL_RECT_T{C.int32_t(value.X), C.int32_t(value.Y), C.int32_t(value.W), C.int32_t(value.H)}
 	handle.set |= MMAL_DISPLAY_SET_SRC_RECT
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// CAMERA ANNOTATION
+
+func MMALCameraAnnotationEnabled(handle MMAL_CameraAnnotation) bool {
+	return handle.enable == MMAL_BOOL_TRUE
+}
+
+func MMALCameraAnnotationSetEnabled(handle MMAL_CameraAnnotation, value bool) {
+	handle.enable = mmal_to_bool(value)
+}
+
+func MMALCameraAnnotationShowShutter(handle MMAL_CameraAnnotation) bool {
+	return handle.show_shutter == MMAL_BOOL_TRUE
+}
+
+func MMALCameraAnnotationSetShowShutter(handle MMAL_CameraAnnotation, value bool) {
+	handle.show_shutter = mmal_to_bool(value)
+}
+
+func MMALCameraAnnotationShowAnalogGain(handle MMAL_CameraAnnotation) bool {
+	return handle.show_analog_gain == MMAL_BOOL_TRUE
+}
+
+func MMALCameraAnnotationSetShowAnalogGain(handle MMAL_CameraAnnotation, value bool) {
+	handle.show_analog_gain = mmal_to_bool(value)
+}
+
+func MMALCameraAnnotationShowLens(handle MMAL_CameraAnnotation) bool {
+	return handle.show_lens == MMAL_BOOL_TRUE
+}
+
+func MMALCameraAnnotationSetShowLens(handle MMAL_CameraAnnotation, value bool) {
+	handle.show_lens = mmal_to_bool(value)
+}
+
+func MMALCameraAnnotationShowCAF(handle MMAL_CameraAnnotation) bool {
+	return handle.show_caf == MMAL_BOOL_TRUE
+}
+
+func MMALCameraAnnotationSetShowCAF(handle MMAL_CameraAnnotation, value bool) {
+	handle.show_caf = mmal_to_bool(value)
+}
+
+func MMALCameraAnnotationShowMotion(handle MMAL_CameraAnnotation) bool {
+	return handle.show_motion == MMAL_BOOL_TRUE
+}
+
+func MMALCameraAnnotationSetShowMotion(handle MMAL_CameraAnnotation, value bool) {
+	handle.show_motion = mmal_to_bool(value)
+}
+
+func MMALCameraAnnotationShowFrameNum(handle MMAL_CameraAnnotation) bool {
+	return handle.show_frame_num == MMAL_BOOL_TRUE
+}
+
+func MMALCameraAnnotationSetShowFrameNum(handle MMAL_CameraAnnotation, value bool) {
+	handle.show_frame_num = mmal_to_bool(value)
+}
+
+func MMALCameraAnnotationShowTextBackground(handle MMAL_CameraAnnotation) bool {
+	return handle.enable_text_background == MMAL_BOOL_TRUE
+}
+
+func MMALCameraAnnotationSetShowTextBackground(handle MMAL_CameraAnnotation, value bool) {
+	handle.enable_text_background = mmal_to_bool(value)
+}
+
+func MMALCameraAnnotationUseCustomBackgroundColor(handle MMAL_CameraAnnotation) bool {
+	return handle.custom_background_colour == MMAL_BOOL_TRUE
+}
+
+func MMALCameraAnnotationSetUseCustomBackgroundColor(handle MMAL_CameraAnnotation, value bool) {
+	handle.custom_background_colour = mmal_to_bool(value)
+}
+
+func MMALCameraAnnotationUseCustomColor(handle MMAL_CameraAnnotation) bool {
+	return handle.custom_text_colour == MMAL_BOOL_TRUE
+}
+
+func MMALCameraAnnotationSetUseCustomColor(handle MMAL_CameraAnnotation, value bool) {
+	handle.custom_text_colour = mmal_to_bool(value)
+}
+
+func MMALCameraAnnotationText(handle MMAL_CameraAnnotation) string {
+	return C.GoString(&handle.text[0])
+}
+
+func MMALCameraAnnotationSetText(handle MMAL_CameraAnnotation, value string) {
+	cstr := C.CString(value)
+	defer C.free(unsafe.Pointer(cstr))
+	C.strncpy(&handle.text[0], cstr, C.uint(len(value)))
+}
+
+func MMALCameraAnnotationTextSize(handle MMAL_CameraAnnotation) uint8 {
+	return uint8(handle.text_size)
+}
+
+func MMALCameraAnnotationSetTextSize(handle MMAL_CameraAnnotation, value uint8) {
+	handle.text_size = C.uint8_t(value)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// CAMERA INFO
+
+func MMALCameraInfoGetCamerasNum(handle MMAL_CameraInfo) uint32 {
+	return uint32(handle.num_cameras)
+}
+
+func MMALCameraInfoGetFlashesNum(handle MMAL_CameraInfo) uint32 {
+	return uint32(handle.num_flashes)
+}
+
+func MMALCameraInfoGetCameras(handle MMAL_CameraInfo) []MMAL_Camera {
+	cameras := make([]MMAL_Camera, int(handle.num_cameras))
+	for i := 0; i < len(cameras); i++ {
+		cameras[i] = MMAL_Camera(handle.cameras[i])
+	}
+	return cameras
+}
+
+func MMALCameraInfoGetFlashes(handle MMAL_CameraInfo) []hw.MMALCameraFlashType {
+	flashes := make([]hw.MMALCameraFlashType, int(handle.num_flashes))
+	for i := 0; i < len(flashes); i++ {
+		flashes[i] = hw.MMALCameraFlashType(handle.flashes[i].flash_type)
+	}
+	return flashes
+}
+
+func MMALCameraInfoGetCameraId(handle MMAL_Camera) uint32 {
+	return uint32(handle.port_id)
+}
+
+func MMALCameraInfoGetCameraName(handle MMAL_Camera) string {
+	return C.GoString(&handle.camera_name[0])
+}
+
+func MMALCameraInfoGetCameraMaxWidth(handle MMAL_Camera) uint32 {
+	return uint32(handle.max_width)
+}
+func MMALCameraInfoGetCameraMaxHeight(handle MMAL_Camera) uint32 {
+	return uint32(handle.max_height)
+}
+
+func MMALCameraInfoGetCameraLensPresent(handle MMAL_Camera) bool {
+	return handle.lens_present == MMAL_BOOL_TRUE
 }
 
 ////////////////////////////////////////////////////////////////////////////////

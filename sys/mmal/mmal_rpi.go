@@ -172,6 +172,42 @@ func (this *mmal) ComponentWithName(name string) (hw.MMALComponent, error) {
 	}
 }
 
+func (this *mmal) CameraComponent() (hw.MMALCameraComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_CAMERA)
+}
+
+func (this *mmal) CameraInfoComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_CAMERA_INFO)
+}
+
+func (this *mmal) VideoDecoderComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_VIDEO_DECODER)
+}
+
+func (this *mmal) VideoEncoderComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_VIDEO_ENCODER)
+}
+
+func (this *mmal) VideoRendererComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_VIDEO_RENDERER)
+}
+
+func (this *mmal) ImageEncoderComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_IMAGE_ENCODER)
+}
+
+func (this *mmal) ImageDecoderComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_IMAGE_DECODER)
+}
+
+func (this *mmal) ReaderComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_CONTAINER_READER)
+}
+
+func (this *mmal) WriterComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_CONTAINER_WRITER)
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // CONNECTIONS
 

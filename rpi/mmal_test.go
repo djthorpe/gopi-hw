@@ -13,13 +13,12 @@ import (
 // TEST ENUMS
 
 func TestStatus_000(t *testing.T) {
-	for status := rpi.MMAL_SUCCESS; status <= rpi.MMAL_MAX; status++ {
+	for status := rpi.MMAL_MIN; status <= rpi.MMAL_MAX; status++ {
 		status_error := fmt.Sprint(status.Error())
-		status_string := fmt.Sprint(status.String())
 		if strings.HasPrefix(status_error, "MMAL_") == false {
 			t.Error("Invalid status error ", status_error)
 		} else {
-			t.Logf("%v => %s, %s", int(status), status_error, status_string)
+			t.Logf("%v => %s", int(status), status_error)
 		}
 	}
 }
