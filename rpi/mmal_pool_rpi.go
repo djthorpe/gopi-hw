@@ -45,6 +45,10 @@ func MMALPortPoolDestroy(handle MMAL_PortHandle, pool MMAL_Pool) error {
 	return nil
 }
 
+func MMALPoolGetBuffer(pool MMAL_Pool) MMAL_Buffer {
+	return MMAL_Buffer(C.mmal_queue_get(pool.queue))
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // PRIVATE METHODS - CALLBACKS
 

@@ -43,6 +43,7 @@ type component struct {
 	input   []*port
 	output  []*port
 	clock   []*port
+	sema    rpi.VCSemaphore
 }
 
 type port struct {
@@ -72,7 +73,6 @@ func (config MMAL) Open(log gopi.Logger) (gopi.Driver, error) {
 	this.hardware = config.Hardware
 	this.components = make(map[string]*component, 0)
 	this.connections = make([]*connection, 0)
-
 	return this, nil
 }
 
@@ -149,18 +149,12 @@ func (this *mmal) ComponentWithName(name string) (hw.MMALComponent, error) {
 			c.clock[i] = this.NewPort(rpi.MMALComponentClockPortAtIndex(handle, uint(i)))
 		}
 
-		/*
-			   // Create our pools and queues
-			   for i, input := range c.input {
-				  input_pool[i] = mmal_port_pool_create(wrapper->input[i], 0, 0);
-				  if err // ...
-				  mmal_pool_callback_set(wrapper->input_pool[i], mmal_wrapper_bh_release_cb, (void *)wrapper);
-
-			  for i, output := range c.output {
-				output_pool[i] = mmal_port_pool_create(wrapper->output[i], 0, 0);
-				if err // ...
-				mmal_pool_callback_set(wrapper->output_pool[i], mmal_wrapper_bh_release_cb, (void *)wrapper);
-		*/
+		// Create Semaphore
+		if sema, err := rpi.VCSemaphoreCreate(name, 0); err != nil {
+			return nil, err
+		} else {
+			c.sema = sema
+		}
 
 		// Enable control port
 		if err := rpi.MMALPortEnable(rpi.MMALComponentControlPort(handle)); err != nil {
@@ -248,7 +242,7 @@ func (this *mmal) NewPort(handle rpi.MMAL_PortHandle) *port {
 	var pool rpi.MMAL_Pool
 	var err error
 
-	// Create the pool/queue if it's an input or output port
+	// Create the pool & queue if it's an input or output port
 	if rpi.MMALPortType(handle) == rpi.MMAL_PORT_TYPE_INPUT || rpi.MMALPortType(handle) == rpi.MMAL_PORT_TYPE_OUTPUT {
 		pool, err = rpi.MMALPortPoolCreate(handle, 0, 0)
 		if err != nil {

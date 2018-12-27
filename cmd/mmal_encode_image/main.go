@@ -48,14 +48,16 @@ func MMALEncodeTest(app *gopi.AppInstance, mmal hw.MMAL, encoder hw.MMALComponen
 		return err
 	}
 
-	// Set output port to input parameter
-	port_out.CopyFormat(port_in.VideoFormat())
+	// Set output port to input parameter and set encoding
+	if err := port_out.CopyFormat(port_in.VideoFormat()); err != nil {
+		return err
+	}
 	port_out.VideoFormat().SetEncoding(format)
 	if err := port_out.CommitFormatChange(); err != nil {
 		return err
 	}
 
-	// Set JPEG Q factor
+	// Set JPEG Quality factor
 	if err := port_out.SetJPEGQFactor(100); err != nil {
 		return err
 	}
@@ -66,6 +68,17 @@ func MMALEncodeTest(app *gopi.AppInstance, mmal hw.MMAL, encoder hw.MMALComponen
 	}
 	if err := port_out.SetEnabled(true); err != nil {
 		return err
+	}
+
+FOR_LOOP:
+	for {
+		// Wait for an empty buffer to be available on a port, block until one becomes available
+		if buffer, err := encoder.GetEmptyBufferOnPort(port_out, true); err != nil {
+			return err
+		} else {
+			fmt.Println("buffer=", buffer)
+			break FOR_LOOP
+		}
 	}
 
 	// Flush output port

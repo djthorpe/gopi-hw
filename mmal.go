@@ -91,6 +91,10 @@ type MMALComponent interface {
 	Clocks() []MMALPort
 	Inputs() []MMALPort
 	Outputs() []MMALPort
+
+	// Get buffer from port and optionally block
+	GetEmptyBufferOnPort(MMALPort, bool) (MMALBuffer, error)
+	GetFullBufferOnPort(MMALPort, bool) (MMALBuffer, error)
 }
 
 type MMALCameraComponent interface {
@@ -124,6 +128,9 @@ type MMALPort interface {
 	MMALCommonParameters
 	MMALVideoParameters
 	MMALCameraParameters
+}
+
+type MMALBuffer interface {
 }
 
 type MMALPortConnection interface {

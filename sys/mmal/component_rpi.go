@@ -56,6 +56,9 @@ func (this *component) Close() error {
 		}
 	}
 
+	// Destroy semaphore
+	rpi.VCSemaphoreDelete(this.sema)
+
 	if err_ := rpi.MMALComponentDestroy(this.handle); err_ != nil {
 		err.Add(err_)
 	}
@@ -163,4 +166,23 @@ func (this *component) Clocks() []hw.MMALPort {
 		ports[i] = port
 	}
 	return ports
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// BUFFERS
+
+func (this *component) GetEmptyBufferOnPort(port hw.MMALPort, blocking bool) (hw.MMALBuffer, error) {
+	// Port needs to be input or output
+	if this.pool == nil {
+		return nil, gopi.ErrBadParameter
+	}
+	for {
+		buffer := rpi.MMALPoolGetBuffer(this.pool)
+		fmt.Println("BUFFER", buffer)
+		return nil, gopi.ErrNotImplemented
+	}
+}
+
+func (this *port) GetFullBufferOnPort(port hw.MMALPort, blocking bool) (hw.MMALBuffer, error) {
+	return nil, gopi.ErrNotImplemented
 }
