@@ -25,7 +25,40 @@ import (
 
 func (this *format) String() string {
 	parts := ""
-	parts += fmt.Sprintf("type=%v", this.Type())
+	parts += fmt.Sprintf("type=%v ", this.Type())
+	if this.Bitrate() > 0 {
+		parts += fmt.Sprintf("bitrate=%v ", this.Bitrate())
+	}
+	encoding, variant := this.Encoding()
+	if encoding != 0 {
+		parts += fmt.Sprintf("encoding=%v ", encoding)
+		if variant != 0 {
+			parts += fmt.Sprintf("encoding_variant=%v", variant)
+
+		}
+	}
+	if this.Type() == hw.MMAL_FORMAT_VIDEO {
+		width, height := this.WidthHeight()
+		if width > 0 || height > 0 {
+			parts += fmt.Sprintf("size={ %v,%v } ", width, height)
+		}
+		crop := this.Crop()
+		if crop.W > 0 || crop.H > 0 {
+			parts += fmt.Sprintf("crop=%v ", crop)
+		}
+		framerate := this.FrameRate()
+		if framerate.Num != 0 && framerate.Den != 0 {
+			parts += fmt.Sprintf("framerate=%.2f ", float64(framerate.Num)/float64(framerate.Den))
+		}
+		par := this.PixelAspectRatio()
+		if par.Num != 0 && par.Den != 0 {
+			parts += fmt.Sprintf("pixel_aspect_ratio=%.2f ", float64(par.Num)/float64(par.Den))
+		}
+		colorspace := this.ColorSpace()
+		if colorspace != 0 {
+			parts += fmt.Sprintf("colorspace=%v ", colorspace)
+		}
+	}
 	return fmt.Sprintf("<sys.hw.mmal.format>{ %v }", strings.TrimSpace(parts))
 }
 
@@ -86,7 +119,10 @@ func (this *format) WidthHeight() (uint32, uint32) {
 func (this *format) SetWidthHeight(w, h uint32) {
 	this.log.Debug2("<sys.hw.mmal.format>SetWidthHeight{ w=%v h=%v }", w, h)
 	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
-		rpi.MMALStreamFormatVideoSetWidthHeight(this.handle, w, h)
+		// Align width and height to boundaries
+		w_ := uint32(rpi.VCAlignUp(uintptr(w), 32))
+		h_ := uint32(rpi.VCAlignUp(uintptr(h), 16))
+		rpi.MMALStreamFormatVideoSetWidthHeight(this.handle, w_, h_)
 	}
 }
 

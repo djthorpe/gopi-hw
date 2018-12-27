@@ -66,9 +66,46 @@ func (this *port) CapabilitySupportsEventFormatChange() bool {
 	return rpi.MMALPortCapabilities(this.handle)&rpi.MMAL_PORT_CAPABILITY_SUPPORTS_EVENT_FORMAT_CHANGE != 0
 }
 
+func (this *port) CopyFormat(other hw.MMALFormat) error {
+	this.log.Debug2("<sys.hw.mmal.port>CopyFormat{ name='%v' src_format=%v }", this.Name(), other)
+	if other_, ok := other.(*format); ok == false {
+		return gopi.ErrBadParameter
+	} else if err := rpi.MMALStreamFormatFullCopy(rpi.MMALPortFormat(this.handle), other_.handle); err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
 func (this *port) CommitFormatChange() error {
 	this.log.Debug2("<sys.hw.mmal.port>CommitFormatChange{ name='%v' }", this.Name())
-	return rpi.MMALPortFormatCommit(this.handle)
+	if err := rpi.MMALPortFormatCommit(this.handle); err != nil {
+		return err
+	}
+
+	// Change buffer parameters
+	buffer_num_min, buffer_num_recommended := rpi.MMALPortBufferNum(this.handle)
+	buffer_size_min, buffer_size_recommended := rpi.MMALPortBufferSize(this.handle)
+
+	// Determine number
+	if buffer_num_recommended == 0 {
+		buffer_num_recommended = buffer_num_min
+	}
+	if buffer_num_recommended == 0 {
+		buffer_num_recommended = 1
+	}
+
+	// Determine size
+	if buffer_size_recommended == 0 {
+		buffer_size_recommended = buffer_size_min
+	}
+
+	// Set buffer parameters
+	this.log.Debug2("<sys.hw.mmal.port>CommitFormatChange{ buffer_num=%v buffer_size=%v }", buffer_num_recommended, buffer_size_recommended)
+	rpi.MMALPortBufferSet(this.handle, buffer_num_recommended, buffer_size_recommended)
+
+	// Success
+	return nil
 }
 
 func (this *port) Connect(other hw.MMALPort) error {

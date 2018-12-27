@@ -121,6 +121,11 @@ func MMALPortBufferSize(handle MMAL_PortHandle) (uint32, uint32) {
 	return uint32(handle.buffer_size_min), uint32(handle.buffer_size_recommended)
 }
 
+func MMALPortBufferSet(handle MMAL_PortHandle, num, size uint32) {
+	handle.buffer_num = C.uint32_t(num)
+	handle.buffer_size = C.uint32_t(size)
+}
+
 func MMALPortBufferAlignment(handle MMAL_PortHandle) uint32 {
 	// Minimum alignment requirement for the buffers. A value of zero
 	// means no special alignment requirements.

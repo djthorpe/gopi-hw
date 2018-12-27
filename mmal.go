@@ -112,8 +112,9 @@ type MMALPort interface {
 	Disconnect() error
 	Flush() error
 
-	// Return Format or nil if the wrong type
+	// Formats
 	Format() MMALFormat
+	CopyFormat(MMALFormat) error
 	VideoFormat() MMALVideoFormat
 	AudioFormat() MMALAudioFormat
 	SubpictureFormat() MMALSubpictureFormat
@@ -607,6 +608,81 @@ const (
 	MMAL_TEXT_JUSTIFY_RIGHT
 	MMAL_TEXT_JUSTIFY_CENTRE = MMAL_TEXT_JUSTIFY_CENTER
 )
+
+////////////////////////////////////////////////////////////////////////////////
+// VIDEO ENCODINGS
+
+var (
+	MMAL_ENCODING_H264   = MMAL_FOURCC('H', '2', '6', '4')
+	MMAL_ENCODING_MVC    = MMAL_FOURCC('M', 'V', 'C', ' ')
+	MMAL_ENCODING_H263   = MMAL_FOURCC('H', '2', '6', '3')
+	MMAL_ENCODING_MP4V   = MMAL_FOURCC('M', 'P', '4', 'V')
+	MMAL_ENCODING_MP2V   = MMAL_FOURCC('M', 'P', '2', 'V')
+	MMAL_ENCODING_MP1V   = MMAL_FOURCC('M', 'P', '1', 'V')
+	MMAL_ENCODING_WMV3   = MMAL_FOURCC('W', 'M', 'V', '3')
+	MMAL_ENCODING_WMV2   = MMAL_FOURCC('W', 'M', 'V', '2')
+	MMAL_ENCODING_WMV1   = MMAL_FOURCC('W', 'M', 'V', '1')
+	MMAL_ENCODING_WVC1   = MMAL_FOURCC('W', 'V', 'C', '1')
+	MMAL_ENCODING_VP8    = MMAL_FOURCC('V', 'P', '8', ' ')
+	MMAL_ENCODING_VP7    = MMAL_FOURCC('V', 'P', '7', ' ')
+	MMAL_ENCODING_VP6    = MMAL_FOURCC('V', 'P', '6', ' ')
+	MMAL_ENCODING_THEORA = MMAL_FOURCC('T', 'H', 'E', 'O')
+	MMAL_ENCODING_SPARK  = MMAL_FOURCC('S', 'P', 'R', 'K')
+	MMAL_ENCODING_MJPEG  = MMAL_FOURCC('M', 'J', 'P', 'G')
+)
+
+////////////////////////////////////////////////////////////////////////////////
+// IMAGE ENCODINGS
+
+var (
+	MMAL_ENCODING_JPEG = MMAL_FOURCC('J', 'P', 'E', 'G')
+	MMAL_ENCODING_GIF  = MMAL_FOURCC('G', 'I', 'F', ' ')
+	MMAL_ENCODING_PNG  = MMAL_FOURCC('P', 'N', 'G', ' ')
+	MMAL_ENCODING_PPM  = MMAL_FOURCC('P', 'P', 'M', ' ')
+	MMAL_ENCODING_TGA  = MMAL_FOURCC('T', 'G', 'A', ' ')
+	MMAL_ENCODING_BMP  = MMAL_FOURCC('B', 'M', 'P', ' ')
+)
+
+////////////////////////////////////////////////////////////////////////////////
+// UNCOMPRESSED ENCODINGS
+
+var (
+	MMAL_ENCODING_I420        = MMAL_FOURCC('I', '4', '2', '0')
+	MMAL_ENCODING_I420_SLICE  = MMAL_FOURCC('S', '4', '2', '0')
+	MMAL_ENCODING_YV12        = MMAL_FOURCC('Y', 'V', '1', '2')
+	MMAL_ENCODING_I422        = MMAL_FOURCC('I', '4', '2', '2')
+	MMAL_ENCODING_I422_SLICE  = MMAL_FOURCC('S', '4', '2', '2')
+	MMAL_ENCODING_YUYV        = MMAL_FOURCC('Y', 'U', 'Y', 'V')
+	MMAL_ENCODING_YVYU        = MMAL_FOURCC('Y', 'V', 'Y', 'U')
+	MMAL_ENCODING_UYVY        = MMAL_FOURCC('U', 'Y', 'V', 'Y')
+	MMAL_ENCODING_VYUY        = MMAL_FOURCC('V', 'Y', 'U', 'Y')
+	MMAL_ENCODING_NV12        = MMAL_FOURCC('N', 'V', '1', '2')
+	MMAL_ENCODING_NV21        = MMAL_FOURCC('N', 'V', '2', '1')
+	MMAL_ENCODING_ARGB        = MMAL_FOURCC('A', 'R', 'G', 'B')
+	MMAL_ENCODING_ARGB_SLICE  = MMAL_FOURCC('a', 'r', 'g', 'b')
+	MMAL_ENCODING_RGBA        = MMAL_FOURCC('R', 'G', 'B', 'A')
+	MMAL_ENCODING_RGBA_SLICE  = MMAL_FOURCC('r', 'g', 'b', 'a')
+	MMAL_ENCODING_ABGR        = MMAL_FOURCC('A', 'B', 'G', 'R')
+	MMAL_ENCODING_ABGR_SLICE  = MMAL_FOURCC('a', 'b', 'g', 'r')
+	MMAL_ENCODING_BGRA        = MMAL_FOURCC('B', 'G', 'R', 'A')
+	MMAL_ENCODING_BGRA_SLICE  = MMAL_FOURCC('b', 'g', 'r', 'a')
+	MMAL_ENCODING_RGB16       = MMAL_FOURCC('R', 'G', 'B', '2')
+	MMAL_ENCODING_RGB16_SLICE = MMAL_FOURCC('r', 'g', 'b', '2')
+	MMAL_ENCODING_RGB24       = MMAL_FOURCC('R', 'G', 'B', '3')
+	MMAL_ENCODING_RGB24_SLICE = MMAL_FOURCC('r', 'g', 'b', '3')
+	MMAL_ENCODING_RGB32       = MMAL_FOURCC('R', 'G', 'B', '4')
+	MMAL_ENCODING_RGB32_SLICE = MMAL_FOURCC('r', 'g', 'b', '4')
+	MMAL_ENCODING_BGR16       = MMAL_FOURCC('B', 'G', 'R', '2')
+	MMAL_ENCODING_BGR16_SLICE = MMAL_FOURCC('b', 'g', 'r', '2')
+	MMAL_ENCODING_BGR24       = MMAL_FOURCC('B', 'G', 'R', '3')
+	MMAL_ENCODING_BGR24_SLICE = MMAL_FOURCC('b', 'g', 'r', '3')
+	MMAL_ENCODING_BGR32       = MMAL_FOURCC('B', 'G', 'R', '4')
+	MMAL_ENCODING_BGR32_SLICE = MMAL_FOURCC('b', 'g', 'r', '4')
+)
+
+func MMAL_FOURCC(a, b, c, d uint8) MMALEncodingType {
+	return MMALEncodingType(uint32(a) | uint32(b)<<8 | uint32(c)<<16 | uint32(d)<<24)
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // STRINGIFY

@@ -28,6 +28,7 @@ import (
     #cgo CFLAGS: -I/opt/vc/include -I/opt/vc/include/interface/vmcs_host
     #cgo LDFLAGS: -L/opt/vc/lib -lbcm_host
 	#include "vc_vchi_gencmd.h"
+	#include "interface/vcos/vcos_types.h"
     #include "bcm_host.h"
 	int vc_gencmd_wrap(char* response,int maxlen,const char* command) {
 		return vc_gencmd(response,maxlen,command);
@@ -187,4 +188,12 @@ func VCGencmdInit() (int, error) {
 func VCGencmdTerminate() error {
 	C.vc_gencmd_stop()
 	return nil
+}
+
+func VCAlignUp(p uintptr, n uintptr) uintptr {
+	return VCAlignDown((p)+(n)-1, n)
+}
+
+func VCAlignDown(p uintptr, n uintptr) uintptr {
+	return p & ^(n - 1)
 }
