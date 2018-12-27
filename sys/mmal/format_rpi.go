@@ -54,6 +54,7 @@ func (this *format) Bitrate() uint32 {
 }
 
 func (this *format) SetBitrate(value uint32) {
+	this.log.Debug2("<sys.hw.mmal.format>SetBitrate{ value=%v }", value)
 	rpi.MMALStreamFormatSetBitrate(this.handle, value)
 }
 
@@ -62,10 +63,12 @@ func (this *format) Encoding() (hw.MMALEncodingType, hw.MMALEncodingType) {
 }
 
 func (this *format) SetEncoding(value hw.MMALEncodingType) {
+	this.log.Debug2("<sys.hw.mmal.format>SetEncoding{ value=%v }", value)
 	rpi.MMALStreamFormatSetEncoding(this.handle, value, 0)
 }
 
 func (this *format) SetEncodingVariant(value, variant hw.MMALEncodingType) {
+	this.log.Debug2("<sys.hw.mmal.format>SetEncodingVariant{ value=%v variant=%v }", value, variant)
 	rpi.MMALStreamFormatSetEncoding(this.handle, value, variant)
 }
 
@@ -81,6 +84,7 @@ func (this *format) WidthHeight() (uint32, uint32) {
 }
 
 func (this *format) SetWidthHeight(w, h uint32) {
+	this.log.Debug2("<sys.hw.mmal.format>SetWidthHeight{ w=%v h=%v }", w, h)
 	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
 		rpi.MMALStreamFormatVideoSetWidthHeight(this.handle, w, h)
 	}
@@ -94,6 +98,7 @@ func (this *format) Crop() hw.MMALRect {
 	}
 }
 func (this *format) SetCrop(value hw.MMALRect) {
+	this.log.Debug2("<sys.hw.mmal.format>SetCrop{ value=%v }", value)
 	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
 		rpi.MMALStreamFormatVideoSetCrop(this.handle, value)
 	}
@@ -107,6 +112,7 @@ func (this *format) FrameRate() hw.MMALRationalNum {
 	}
 }
 func (this *format) SetFrameRate(value hw.MMALRationalNum) {
+	this.log.Debug2("<sys.hw.mmal.format>SetFrameRate{ value=%v }", value)
 	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
 		rpi.MMALStreamFormatVideoSetFrameRate(this.handle, value)
 	}
@@ -121,6 +127,7 @@ func (this *format) PixelAspectRatio() hw.MMALRationalNum {
 }
 
 func (this *format) SetPixelAspectRatio(value hw.MMALRationalNum) {
+	this.log.Debug2("<sys.hw.mmal.format>SetPixelAspectRatio{ value=%v }", value)
 	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
 		rpi.MMALStreamFormatVideoSetPixelAspectRatio(this.handle, value)
 	}
@@ -135,6 +142,7 @@ func (this *format) ColorSpace() hw.MMALEncodingType {
 }
 
 func (this *format) SetColorSpace(value hw.MMALEncodingType) {
+	this.log.Debug2("<sys.hw.mmal.format>SetColorSpace{ value=%v }", value)
 	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
 		rpi.MMALStreamFormatVideoSetColorSpace(this.handle, value)
 	}

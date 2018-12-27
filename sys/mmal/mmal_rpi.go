@@ -52,6 +52,7 @@ type port struct {
 }
 
 type format struct {
+	log    gopi.Logger
 	handle rpi.MMAL_StreamFormat
 }
 

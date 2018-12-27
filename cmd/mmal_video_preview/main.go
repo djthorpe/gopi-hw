@@ -31,9 +31,9 @@ import (
 func RendererInputPort(mmal hw.MMAL) (hw.MMALPort, error) {
 	if renderer, err := mmal.ComponentWithName("vc.ril.video_render"); err != nil {
 		return nil, err
-	} else if port := renderer.Input()[0]; port == nil {
+	} else if port := renderer.Inputs()[0]; port == nil {
 		return nil, gopi.ErrBadParameter
-	} else if display_region, err := port.GetDisplayRegion(); err != nil {
+	} else if display_region, err := port.DisplayRegion(); err != nil {
 		return nil, err
 	} else {
 		display_region.SetFullScreen(true)
@@ -48,7 +48,7 @@ func RendererInputPort(mmal hw.MMAL) (hw.MMALPort, error) {
 func ReaderOutputPort(mmal hw.MMAL, uri string) (hw.MMALPort, error) {
 	if reader, err := mmal.ComponentWithName("container_reader"); err != nil {
 		return nil, err
-	} else if output_port := reader.Output()[0]; output_port == nil {
+	} else if output_port := reader.Outputs()[0]; output_port == nil {
 		return nil, gopi.ErrBadParameter
 	} else if err := reader.Control().SetUri(uri); err != nil {
 		return nil, err
@@ -60,9 +60,9 @@ func ReaderOutputPort(mmal hw.MMAL, uri string) (hw.MMALPort, error) {
 func DecoderInputOutputPorts(mmal hw.MMAL) (hw.MMALPort, hw.MMALPort, error) {
 	if decoder, err := mmal.ComponentWithName("vc.ril.video_decode"); err != nil {
 		return nil, nil, err
-	} else if input_port := decoder.Input()[0]; input_port == nil {
+	} else if input_port := decoder.Inputs()[0]; input_port == nil {
 		return nil, nil, gopi.ErrBadParameter
-	} else if output_port := decoder.Output()[0]; output_port == nil {
+	} else if output_port := decoder.Outputs()[0]; output_port == nil {
 		return nil, nil, gopi.ErrBadParameter
 	} else {
 		return input_port, output_port, nil

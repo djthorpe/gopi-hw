@@ -56,14 +56,14 @@ func CameraOutputPort(mmal hw.MMAL) (hw.MMALPort, error) {
 		return nil, err
 	} else {
 		// Set camera framesize
-		port.VideoFormat().SetWidthHeight(100, 100)
+		port.VideoFormat().SetWidthHeight(1920, 1080)
 		if err := port.CommitFormatChange(); err != nil {
 			return nil, err
 		}
 
 		annotation.SetText("Hello, world")
 		annotation.SetTextSize(24)
-		fmt.Println(annotation)
+		annotation.SetTextOffset(100, 100)
 		if err := camera.Control().SetAnnotation(annotation); err != nil {
 			return nil, err
 		}

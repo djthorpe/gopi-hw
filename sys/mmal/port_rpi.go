@@ -120,5 +120,5 @@ func (this *port) SubpictureFormat() hw.MMALSubpictureFormat {
 // PRIVATE METHODS
 
 func (this *port) NewFormat() *format {
-	return &format{rpi.MMALPortFormat(this.handle)}
+	return &format{this.log, rpi.MMALPortFormat(this.handle)}
 }
