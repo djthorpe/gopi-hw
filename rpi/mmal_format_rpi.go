@@ -129,12 +129,12 @@ func MMALStreamFormatVideoSetPixelAspectRatio(handle MMAL_StreamFormat, value hw
 	video.par.den = C.int32_t(value.Den)
 }
 
-func MMALStreamFormatColorSpace(handle MMAL_StreamFormat) hw.MMALEncodingType {
+func MMALStreamFormatVideoColorSpace(handle MMAL_StreamFormat) hw.MMALEncodingType {
 	video := (*C.MMAL_VIDEO_FORMAT_T)(unsafe.Pointer(handle.es))
 	return hw.MMALEncodingType(video.color_space)
 }
 
-func MMALStreamFormatSetColorSpace(handle MMAL_StreamFormat, value hw.MMALEncodingType) {
+func MMALStreamFormatVideoSetColorSpace(handle MMAL_StreamFormat, value hw.MMALEncodingType) {
 	video := (*C.MMAL_VIDEO_FORMAT_T)(unsafe.Pointer(handle.es))
 	video.color_space = C.MMAL_FOURCC_T(value)
 }

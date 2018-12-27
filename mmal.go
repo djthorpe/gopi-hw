@@ -333,8 +333,8 @@ type MMALCameraParameters interface {
 
 type MMALFormat interface {
 	Type() MMALFormatType
-	BitRate() uint32
-	SetBitRate(uint32)
+	Bitrate() uint32
+	SetBitrate(uint32)
 	Encoding() (MMALEncodingType, MMALEncodingType)
 	SetEncoding(MMALEncodingType)
 	SetEncodingVariant(MMALEncodingType, MMALEncodingType)
@@ -360,6 +360,7 @@ type MMALAudioFormat interface {
 	MMALFormat
 
 	// Get and set audio format parameters
+	/* TODO
 	Channels() uint32
 	SetChannels(uint32)
 	SampleRate() uint32
@@ -367,14 +368,15 @@ type MMALAudioFormat interface {
 	BitsPerSample() uint32
 	SetBitsPerSample(uint32)
 	BlockAlign() uint32
-	SetBlockAlign(uint32)
+	SetBlockAlign(uint32)*/
 }
 
 type MMALSubpictureFormat interface {
 	MMALFormat
-
+	/* TODO
 	XYOffset() (uint32, uint32)
 	SetXYOffset(uint32, uint32)
+	*/
 }
 
 type MMALDisplayRegion interface {

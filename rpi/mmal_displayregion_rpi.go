@@ -94,20 +94,20 @@ func MMALDisplayRegionSetCopyProtect(handle MMAL_DisplayRegion, value bool) {
 	handle.set |= MMAL_DISPLAY_SET_COPYPROTECT
 }
 
-func MMALDisplayRegionGetDestRect(handle MMAL_DisplayRegion) MMAL_Rect {
-	return MMAL_Rect{int32(handle.dest_rect.x), int32(handle.dest_rect.y), uint32(handle.dest_rect.width), uint32(handle.dest_rect.height)}
+func MMALDisplayRegionGetDestRect(handle MMAL_DisplayRegion) hw.MMALRect {
+	return hw.MMALRect{int32(handle.dest_rect.x), int32(handle.dest_rect.y), uint32(handle.dest_rect.width), uint32(handle.dest_rect.height)}
 }
 
-func MMALDisplayRegionGetSrcRect(handle MMAL_DisplayRegion) MMAL_Rect {
-	return MMAL_Rect{int32(handle.src_rect.x), int32(handle.src_rect.y), uint32(handle.src_rect.width), uint32(handle.src_rect.height)}
+func MMALDisplayRegionGetSrcRect(handle MMAL_DisplayRegion) hw.MMALRect {
+	return hw.MMALRect{int32(handle.src_rect.x), int32(handle.src_rect.y), uint32(handle.src_rect.width), uint32(handle.src_rect.height)}
 }
 
-func MMALDisplayRegionSetDestRect(handle MMAL_DisplayRegion, value MMAL_Rect) {
+func MMALDisplayRegionSetDestRect(handle MMAL_DisplayRegion, value hw.MMALRect) {
 	handle.dest_rect = C.MMAL_RECT_T{C.int32_t(value.X), C.int32_t(value.Y), C.int32_t(value.W), C.int32_t(value.H)}
 	handle.set |= MMAL_DISPLAY_SET_DEST_RECT
 }
 
-func MMALDisplayRegionSetSrcRect(handle MMAL_DisplayRegion, value MMAL_Rect) {
+func MMALDisplayRegionSetSrcRect(handle MMAL_DisplayRegion, value hw.MMALRect) {
 	handle.src_rect = C.MMAL_RECT_T{C.int32_t(value.X), C.int32_t(value.Y), C.int32_t(value.W), C.int32_t(value.H)}
 	handle.set |= MMAL_DISPLAY_SET_SRC_RECT
 }

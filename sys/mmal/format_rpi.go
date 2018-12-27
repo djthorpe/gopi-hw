@@ -85,3 +85,57 @@ func (this *format) SetWidthHeight(w, h uint32) {
 		rpi.MMALStreamFormatVideoSetWidthHeight(this.handle, w, h)
 	}
 }
+
+func (this *format) Crop() hw.MMALRect {
+	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
+		return rpi.MMALStreamFormatVideoCrop(this.handle)
+	} else {
+		return hw.MMALRect{}
+	}
+}
+func (this *format) SetCrop(value hw.MMALRect) {
+	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
+		rpi.MMALStreamFormatVideoSetCrop(this.handle, value)
+	}
+}
+
+func (this *format) FrameRate() hw.MMALRationalNum {
+	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
+		return rpi.MMALStreamFormatVideoFrameRate(this.handle)
+	} else {
+		return hw.MMALRationalNum{}
+	}
+}
+func (this *format) SetFrameRate(value hw.MMALRationalNum) {
+	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
+		rpi.MMALStreamFormatVideoSetFrameRate(this.handle, value)
+	}
+}
+
+func (this *format) PixelAspectRatio() hw.MMALRationalNum {
+	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
+		return rpi.MMALStreamFormatVideoPixelAspectRatio(this.handle)
+	} else {
+		return hw.MMALRationalNum{}
+	}
+}
+
+func (this *format) SetPixelAspectRatio(value hw.MMALRationalNum) {
+	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
+		rpi.MMALStreamFormatVideoSetPixelAspectRatio(this.handle, value)
+	}
+}
+
+func (this *format) ColorSpace() hw.MMALEncodingType {
+	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
+		return rpi.MMALStreamFormatVideoColorSpace(this.handle)
+	} else {
+		return 0
+	}
+}
+
+func (this *format) SetColorSpace(value hw.MMALEncodingType) {
+	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
+		rpi.MMALStreamFormatVideoSetColorSpace(this.handle, value)
+	}
+}

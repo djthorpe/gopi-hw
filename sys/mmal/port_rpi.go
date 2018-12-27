@@ -86,12 +86,12 @@ func (this *port) Disconnect() error {
 }
 
 func (this *port) Format() hw.MMALFormat {
-	return &format{rpi.MMALPortFormat(this.handle)}
+	return this.NewFormat()
 }
 
 func (this *port) VideoFormat() hw.MMALVideoFormat {
-	format := this.Format()
-	if rpi.MMALPortType(format.handle) != rpi.MMAL_STREAM_FORMAT_TYPE_VIDEO {
+	format := this.NewFormat()
+	if format.Type() != hw.MMAL_FORMAT_VIDEO {
 		return nil
 	} else {
 		return format
@@ -99,8 +99,8 @@ func (this *port) VideoFormat() hw.MMALVideoFormat {
 }
 
 func (this *port) AudioFormat() hw.MMALAudioFormat {
-	format := this.Format()
-	if rpi.MMALPortType(format.handle) != rpi.MMAL_STREAM_FORMAT_TYPE_AUDIO {
+	format := this.NewFormat()
+	if format.Type() != hw.MMAL_FORMAT_AUDIO {
 		return nil
 	} else {
 		return format
@@ -108,10 +108,17 @@ func (this *port) AudioFormat() hw.MMALAudioFormat {
 }
 
 func (this *port) SubpictureFormat() hw.MMALSubpictureFormat {
-	format := this.Format()
-	if rpi.MMALPortType(format.handle) != rpi.MMAL_STREAM_FORMAT_TYPE_SUBPICTURE {
+	format := this.NewFormat()
+	if format.Type() != hw.MMAL_FORMAT_SUBPICTURE {
 		return nil
 	} else {
 		return format
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// PRIVATE METHODS
+
+func (this *port) NewFormat() *format {
+	return &format{rpi.MMALPortFormat(this.handle)}
 }

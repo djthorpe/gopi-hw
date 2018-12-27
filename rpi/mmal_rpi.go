@@ -52,11 +52,6 @@ type (
 	MMAL_CameraAnnotation    (*C.MMAL_PARAMETER_CAMERA_ANNOTATE_V4_T)
 )
 
-type MMAL_Rect struct {
-	X, Y int32
-	W, H uint32
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS - QUEUES
 /*
