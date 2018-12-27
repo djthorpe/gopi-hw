@@ -172,3 +172,46 @@ func TestComponent_007(t *testing.T) {
 		}
 	}
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// TEST FORMATS
+
+func TestFormats_001(t *testing.T) {
+	var handle rpi.MMAL_ComponentHandle
+	if err := rpi.MMALComponentCreate(rpi.MMAL_COMPONENT_DEFAULT_VIDEO_DECODER, &handle); err != nil {
+		t.Error("Component create error:", err)
+	} else if num_ports := rpi.MMALComponentPortNum(handle); num_ports == 0 {
+		t.Error("Unexpected number of ports:", num_ports)
+	} else {
+		for port_index := uint(0); port_index < uint(num_ports); port_index++ {
+			port := rpi.MMALComponentPortAtIndex(handle, port_index)
+			port_name := rpi.MMALPortName(port)
+			format := rpi.MMALPortFormat(port)
+			format_type := rpi.MMALStreamFormatType(format)
+			format_encoding, format_variant := rpi.MMALStreamFormatEncoding(format)
+			format_bitrate := rpi.MMALStreamFormatBitrate(format)
+			t.Log("PORT", port_name)
+			t.Log("  FORMAT TYPE", format_type)
+			if format_encoding != 0 {
+				t.Log("  FORMAT ENCODING", format_encoding)
+			}
+			if format_variant != 0 {
+				t.Log("  FORMAT ENCODING VARIANT", format_variant)
+			}
+			if format_bitrate != 0 {
+				t.Log("  FORMAT BITRATE", format_bitrate)
+			}
+			if format_type == rpi.MMAL_STREAM_TYPE_VIDEO {
+				w, h := rpi.MMALStreamFormatVideoWidthHeight(format)
+				t.Log("  FORMAT VIDEO FRAME SIZE {", w, ",", h, "}")
+				t.Log("  FORMAT VIDEO CROP ", rpi.MMALStreamFormatVideoCrop(format))
+				t.Log("  FORMAT VIDEO FRAME RATE ", rpi.MMALStreamFormatVideoFrameRate(format))
+				t.Log("  FORMAT VIDEO PIXEL ASPECT RATIO ", rpi.MMALStreamFormatVideoPixelAspectRatio(format))
+				t.Log("  FORMAT VIDEO COLOR SPACE ", rpi.MMALStreamFormatColorSpace(format))
+			}
+		}
+		if err := rpi.MMALComponentDestroy(handle); err != nil {
+			t.Error("Component destroy error:", err)
+		}
+	}
+}

@@ -88,3 +88,30 @@ func (this *port) Disconnect() error {
 func (this *port) Format() hw.MMALFormat {
 	return &format{rpi.MMALPortFormat(this.handle)}
 }
+
+func (this *port) VideoFormat() hw.MMALVideoFormat {
+	format := this.Format()
+	if rpi.MMALPortType(format.handle) != rpi.MMAL_STREAM_FORMAT_TYPE_VIDEO {
+		return nil
+	} else {
+		return format
+	}
+}
+
+func (this *port) AudioFormat() hw.MMALAudioFormat {
+	format := this.Format()
+	if rpi.MMALPortType(format.handle) != rpi.MMAL_STREAM_FORMAT_TYPE_AUDIO {
+		return nil
+	} else {
+		return format
+	}
+}
+
+func (this *port) SubpictureFormat() hw.MMALSubpictureFormat {
+	format := this.Format()
+	if rpi.MMALPortType(format.handle) != rpi.MMAL_STREAM_FORMAT_TYPE_SUBPICTURE {
+		return nil
+	} else {
+		return format
+	}
+}

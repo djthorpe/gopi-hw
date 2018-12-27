@@ -13,6 +13,7 @@ package mmal
 
 import (
 	"fmt"
+	"strings"
 
 	// Framerworks
 	hw "github.com/djthorpe/gopi-hw"
@@ -23,11 +24,13 @@ import (
 // STRINGIFY
 
 func (this *format) String() string {
-	return fmt.Sprintf("<sys.hw.mmal.format>{ type=%v }", this.Type())
+	parts := ""
+	parts += fmt.Sprintf("type=%v", this.Type())
+	return fmt.Sprintf("<sys.hw.mmal.format>{ %v }", strings.TrimSpace(parts))
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// PROPERTIES
+// IMPLEMENTATION - STREAM FORMAT
 
 func (this *format) Type() hw.MMALFormatType {
 	switch rpi.MMALStreamFormatType(this.handle) {
@@ -43,5 +46,42 @@ func (this *format) Type() hw.MMALFormatType {
 		return hw.MMAL_FORMAT_SUBPICTURE
 	default:
 		return hw.MMAL_FORMAT_UNKNOWN
+	}
+}
+
+func (this *format) Bitrate() uint32 {
+	return rpi.MMALStreamFormatBitrate(this.handle)
+}
+
+func (this *format) SetBitrate(value uint32) {
+	rpi.MMALStreamFormatSetBitrate(this.handle, value)
+}
+
+func (this *format) Encoding() (hw.MMALEncodingType, hw.MMALEncodingType) {
+	return rpi.MMALStreamFormatEncoding(this.handle)
+}
+
+func (this *format) SetEncoding(value hw.MMALEncodingType) {
+	rpi.MMALStreamFormatSetEncoding(this.handle, value, 0)
+}
+
+func (this *format) SetEncodingVariant(value, variant hw.MMALEncodingType) {
+	rpi.MMALStreamFormatSetEncoding(this.handle, value, variant)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// IMPLEMENTATION - VIDEO STREAM FORMAT
+
+func (this *format) WidthHeight() (uint32, uint32) {
+	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
+		return rpi.MMALStreamFormatVideoWidthHeight(this.handle)
+	} else {
+		return 0, 0
+	}
+}
+
+func (this *format) SetWidthHeight(w, h uint32) {
+	if rpi.MMALStreamFormatType(this.handle) == rpi.MMAL_STREAM_TYPE_VIDEO {
+		rpi.MMALStreamFormatVideoSetWidthHeight(this.handle, w, h)
 	}
 }

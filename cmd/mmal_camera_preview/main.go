@@ -29,9 +29,9 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 
 func RendererInputPort(mmal hw.MMAL) (hw.MMALPort, error) {
-	if renderer, err := mmal.ComponentWithName("vc.ril.video_render"); err != nil {
+	if renderer, err := mmal.VideoRendererComponent(); err != nil {
 		return nil, err
-	} else if port := renderer.Input()[0]; port == nil {
+	} else if port := renderer.Inputs()[0]; port == nil {
 		return nil, gopi.ErrBadParameter
 	} else if display_region, err := port.DisplayRegion(); err != nil {
 		return nil, err
@@ -48,13 +48,19 @@ func RendererInputPort(mmal hw.MMAL) (hw.MMALPort, error) {
 }
 
 func CameraOutputPort(mmal hw.MMAL) (hw.MMALPort, error) {
-	if camera, err := mmal.ComponentWithName("vc.ril.camera"); err != nil {
+	if camera, err := mmal.CameraComponent(); err != nil {
 		return nil, err
-	} else if port := camera.Output()[0]; port == nil {
+	} else if port := camera.Outputs()[0]; port == nil {
 		return nil, gopi.ErrBadParameter
 	} else if annotation, err := camera.Control().Annotation(); err != nil {
 		return nil, err
 	} else {
+		// Set camera framesize
+		port.VideoFormat().SetWidthHeight(100, 100)
+		if err := port.CommitFormatChange(); err != nil {
+			return nil, err
+		}
+
 		annotation.SetText("Hello, world")
 		annotation.SetTextSize(24)
 		fmt.Println(annotation)

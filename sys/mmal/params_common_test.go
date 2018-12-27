@@ -17,7 +17,7 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 // TEST MMAL
 
-func TestMMAL_000(t *testing.T) {
+func TestCommon_000(t *testing.T) {
 	config := gopi.NewAppConfig("hw/mmal")
 	if app, err := gopi.NewAppInstance(config); err != nil {
 		t.Fatal(err)
@@ -28,7 +28,7 @@ func TestMMAL_000(t *testing.T) {
 	}
 }
 
-func TestMMAL_001(t *testing.T) {
+func TestCommon_001(t *testing.T) {
 	config := gopi.NewAppConfig("hw/mmal")
 	if app, err := gopi.NewAppInstance(config); err != nil {
 		t.Fatal(err)
@@ -41,7 +41,7 @@ func TestMMAL_001(t *testing.T) {
 
 ////////////////////////////////////////////////////////////////////////////////
 // TEST COMMON PARAMETERS
-func TestSupportedEncodings_000(t *testing.T) {
+func TestCommonSupportedEncodings_000(t *testing.T) {
 	config := gopi.NewAppConfig("hw/mmal")
 	if app, err := gopi.NewAppInstance(config); err != nil {
 		t.Fatal(err)
@@ -49,7 +49,7 @@ func TestSupportedEncodings_000(t *testing.T) {
 		t.Fatal("Invalid mmal module")
 	} else if encoder, err := mmal.VideoEncoderComponent(); err != nil {
 		t.Error(err)
-	} else if encodings, err := encoder.Output()[0].SupportedEncodings(); err != nil {
+	} else if encodings, err := encoder.Outputs()[0].SupportedEncodings(); err != nil {
 		t.Error(err)
 	} else if len(encodings) == 0 {
 		t.Error("Expected encoder to support some encodings")

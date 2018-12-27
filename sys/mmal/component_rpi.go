@@ -141,7 +141,7 @@ func (this *component) Control() hw.MMALPort {
 	return this.control
 }
 
-func (this *component) Input() []hw.MMALPort {
+func (this *component) Inputs() []hw.MMALPort {
 	ports := make([]hw.MMALPort, len(this.input))
 	for i, port := range this.input {
 		ports[i] = port
@@ -149,7 +149,7 @@ func (this *component) Input() []hw.MMALPort {
 	return ports
 }
 
-func (this *component) Output() []hw.MMALPort {
+func (this *component) Outputs() []hw.MMALPort {
 	ports := make([]hw.MMALPort, len(this.output))
 	for i, port := range this.output {
 		ports[i] = port
@@ -157,7 +157,7 @@ func (this *component) Output() []hw.MMALPort {
 	return ports
 }
 
-func (this *component) Clock() []hw.MMALPort {
+func (this *component) Clocks() []hw.MMALPort {
 	ports := make([]hw.MMALPort, len(this.clock))
 	for i, port := range this.clock {
 		ports[i] = port

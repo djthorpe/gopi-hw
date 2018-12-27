@@ -17,7 +17,7 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 // TEST MMAL
 
-func TestMMAL_000(t *testing.T) {
+func TestVideo_000(t *testing.T) {
 	config := gopi.NewAppConfig("hw/mmal")
 	if app, err := gopi.NewAppInstance(config); err != nil {
 		t.Fatal(err)
@@ -28,7 +28,7 @@ func TestMMAL_000(t *testing.T) {
 	}
 }
 
-func TestMMAL_001(t *testing.T) {
+func TestVideo_001(t *testing.T) {
 	config := gopi.NewAppConfig("hw/mmal")
 	if app, err := gopi.NewAppInstance(config); err != nil {
 		t.Fatal(err)
@@ -49,7 +49,7 @@ func TestVideoProfile_000(t *testing.T) {
 		t.Fatal("Invalid mmal module")
 	} else if encoder, err := mmal.VideoEncoderComponent(); err != nil {
 		t.Error(err)
-	} else if profile, err := encoder.Output()[0].VideoProfile(); err != nil {
+	} else if profile, err := encoder.Outputs()[0].VideoProfile(); err != nil {
 		t.Error(err)
 	} else {
 		t.Log(profile)
@@ -64,9 +64,9 @@ func TestVideoProfile_001(t *testing.T) {
 		t.Fatal("Invalid mmal module")
 	} else if encoder, err := mmal.VideoEncoderComponent(); err != nil {
 		t.Error(err)
-	} else if profile, err := encoder.Output()[0].VideoProfile(); err != nil {
+	} else if profile, err := encoder.Outputs()[0].VideoProfile(); err != nil {
 		t.Error(err)
-	} else if err := encoder.Output()[0].SetVideoProfile(profile); err != nil {
+	} else if err := encoder.Outputs()[0].SetVideoProfile(profile); err != nil {
 		t.Error(err)
 	} else {
 		t.Log(profile)
@@ -81,7 +81,7 @@ func TestVideoProfile_002(t *testing.T) {
 		t.Fatal("Invalid mmal module")
 	} else if encoder, err := mmal.CameraComponent(); err != nil {
 		t.Error(err)
-	} else if profiles, err := encoder.Output()[1].SupportedVideoProfiles(); err != nil {
+	} else if profiles, err := encoder.Outputs()[1].SupportedVideoProfiles(); err != nil {
 		t.Error(err)
 	} else {
 		t.Log(profiles)

@@ -37,15 +37,6 @@ func (this *port) SupportedEncodings() ([]hw.MMALEncodingType, error) {
 ////////////////////////////////////////////////////////////////////////////////
 // MMAL_PARAMETER_URI
 
-func (this *port) Uri() (string, error) {
-	if param, err := rpi.MMALPortParameterAllocGet(this.handle, rpi.MMAL_PARAMETER_GROUP_COMMON|rpi.MMAL_PARAMETER_URI, 0); err != nil {
-		return "", err
-	} else {
-		defer rpi.MMALPortParameterAllocFree(param)
-		return "<TODO>", nil
-	}
-}
-
 func (this *port) SetUri(value string) error {
 	return rpi.MMALPortSetURI(this.handle, value)
 }

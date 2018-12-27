@@ -44,6 +44,11 @@ type MMALRationalNum struct {
 	Num, Den int32
 }
 
+type MMALRect struct {
+	X, Y int32
+	W, H uint32
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // INTERFACES
 
@@ -83,9 +88,9 @@ type MMALComponent interface {
 
 	// Return ports
 	Control() MMALPort
-	Clock() []MMALPort
-	Input() []MMALPort
-	Output() []MMALPort
+	Clocks() []MMALPort
+	Inputs() []MMALPort
+	Outputs() []MMALPort
 }
 
 type MMALCameraComponent interface {
@@ -107,11 +112,14 @@ type MMALPort interface {
 	Disconnect() error
 	Flush() error
 
-	// Formats
+	// Return Format or nil if the wrong type
 	Format() MMALFormat
+	VideoFormat() MMALVideoFormat
+	AudioFormat() MMALAudioFormat
+	SubpictureFormat() MMALSubpictureFormat
 	CommitFormatChange() error
 
-	// Get/Set Port Parameters
+	// Port Parameters
 	MMALCommonParameters
 	MMALVideoParameters
 	MMALCameraParameters
@@ -325,6 +333,48 @@ type MMALCameraParameters interface {
 
 type MMALFormat interface {
 	Type() MMALFormatType
+	BitRate() uint32
+	SetBitRate(uint32)
+	Encoding() (MMALEncodingType, MMALEncodingType)
+	SetEncoding(MMALEncodingType)
+	SetEncodingVariant(MMALEncodingType, MMALEncodingType)
+}
+
+type MMALVideoFormat interface {
+	MMALFormat
+
+	// Get and set video format parameters
+	WidthHeight() (uint32, uint32)
+	SetWidthHeight(uint32, uint32)
+	Crop() MMALRect
+	SetCrop(MMALRect)
+	FrameRate() MMALRationalNum
+	SetFrameRate(MMALRationalNum)
+	PixelAspectRatio() MMALRationalNum
+	SetPixelAspectRatio(MMALRationalNum)
+	ColorSpace() MMALEncodingType
+	SetColorSpace(MMALEncodingType)
+}
+
+type MMALAudioFormat interface {
+	MMALFormat
+
+	// Get and set audio format parameters
+	Channels() uint32
+	SetChannels(uint32)
+	SampleRate() uint32
+	SetSampleRate(uint32)
+	BitsPerSample() uint32
+	SetBitsPerSample(uint32)
+	BlockAlign() uint32
+	SetBlockAlign(uint32)
+}
+
+type MMALSubpictureFormat interface {
+	MMALFormat
+
+	XYOffset() (uint32, uint32)
+	SetXYOffset(uint32, uint32)
 }
 
 type MMALDisplayRegion interface {
@@ -337,8 +387,8 @@ type MMALDisplayRegion interface {
 	NoAspect() bool
 	Mode() MMALDisplayMode
 	CopyProtect() bool
-	DestRect() (int32, int32, uint32, uint32)
-	SrcRect() (int32, int32, uint32, uint32)
+	DestRect() MMALRect
+	SrcRect() MMALRect
 
 	// Set properties
 	SetFullScreen(bool)
@@ -348,8 +398,8 @@ type MMALDisplayRegion interface {
 	SetNoAspect(bool)
 	SetMode(MMALDisplayMode)
 	SetCopyProtect(bool)
-	SetDestRect(x, y int32, width, height uint32)
-	SetSrcRect(x, y int32, width, height uint32)
+	SetDestRect(MMALRect)
+	SetSrcRect(MMALRect)
 }
 
 type MMALCameraInfo interface {
