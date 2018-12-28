@@ -35,6 +35,7 @@ func MMALPortPoolCreate(handle MMAL_PortHandle, num, payload_size uint32) (MMAL_
 	if pool := C.mmal_port_pool_create(handle, C.uint32_t(num), C.uint32_t(payload_size)); pool == nil {
 		return nil, MMAL_EINVAL
 	} else {
+		fmt.Println("Setting pool callback", pool, C.mmal_bh_release_callback)
 		C.mmal_pool_callback_set(pool, C.MMAL_POOL_BH_CB_T(C.mmal_bh_release_callback), nil)
 		return pool, nil
 	}
@@ -46,7 +47,47 @@ func MMALPortPoolDestroy(handle MMAL_PortHandle, pool MMAL_Pool) error {
 }
 
 func MMALPoolGetBuffer(pool MMAL_Pool) MMAL_Buffer {
+	fmt.Println("MMALPoolGetBuffer", pool, pool.queue)
 	return MMAL_Buffer(C.mmal_queue_get(pool.queue))
+}
+
+func MMALPoolResize(handle MMAL_Pool, num, payload_size uint32) error {
+	if status := MMAL_Status(C.mmal_pool_resize(handle, C.uint32_t(num), C.uint32_t(payload_size))); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
+func MMALPoolString(pool MMAL_Pool) string {
+	if pool == nil {
+		return "<MMAL_Pool>{ nil }"
+	} else {
+		buffers := make([]string, pool.headers_num)
+		for i := range buffers {
+			buffers[i] = "<TODO>"
+		}
+		return fmt.Sprintf("<MMAL_Pool>{ queue=%v buffers=%v }", MMALQueueString(pool.queue), buffers)
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// PUBLIC METHODS - QUEUES
+
+func MMALQueueCreate() MMAL_Queue {
+	return MMAL_Queue(C.mmal_queue_create())
+}
+
+func MMALQueueDestroy(handle MMAL_Queue) {
+	C.mmal_queue_destroy(handle)
+}
+
+func MMALQueueString(handle MMAL_Queue) string {
+	if handle == nil {
+		return "<MMAL_Queue>{ nil }"
+	} else {
+		return fmt.Sprintf("<MMAL_Queue>{ %v }", handle)
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////

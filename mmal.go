@@ -33,6 +33,7 @@ type (
 	MMALCameraMeteringMode  uint
 	MMALCameraExposureMode  uint
 	MMALTextJustify         uint
+	MMALBufferFlag          uint
 )
 
 type MMALVideoProfile struct {
@@ -616,6 +617,25 @@ const (
 	MMAL_TEXT_JUSTIFY_CENTRE = MMAL_TEXT_JUSTIFY_CENTER
 )
 
+const (
+	MMAL_BUFFER_FLAG_EOS                 MMALBufferFlag = (1 << iota)
+	MMAL_BUFFER_FLAG_FRAME_START         MMALBufferFlag = (1 << iota)                                                 // Signals that the start of the current payload starts a frame
+	MMAL_BUFFER_FLAG_FRAME_END           MMALBufferFlag = (1 << iota)                                                 // Signals that the end of the current payload ends a frame
+	MMAL_BUFFER_FLAG_KEYFRAME            MMALBufferFlag = (1 << iota)                                                 // Signals that the current payload is a keyframe (i.e. self decodable)
+	MMAL_BUFFER_FLAG_DISCONTINUITY       MMALBufferFlag = (1 << iota)                                                 // Signals a discontinuity in the stream of data (e.g. after a seek). Can be used for instance by a decoder to reset its state
+	MMAL_BUFFER_FLAG_CONFIG              MMALBufferFlag = (1 << iota)                                                 // Signals a buffer containing some kind of config data for the component (e.g. codec config data)
+	MMAL_BUFFER_FLAG_ENCRYPTED           MMALBufferFlag = (1 << iota)                                                 // Signals an encrypted payload
+	MMAL_BUFFER_FLAG_CODECSIDEINFO       MMALBufferFlag = (1 << iota)                                                 // Signals a buffer containing side information
+	MMAL_BUFFER_FLAGS_SNAPSHOT           MMALBufferFlag = (1 << iota)                                                 // Signals a buffer which is the snapshot/postview image from a stills capture
+	MMAL_BUFFER_FLAG_CORRUPTED           MMALBufferFlag = (1 << iota)                                                 // Signals a buffer which contains data known to be corrupted
+	MMAL_BUFFER_FLAG_TRANSMISSION_FAILED MMALBufferFlag = (1 << iota)                                                 // Signals that a buffer failed to be transmitted
+	MMAL_BUFFER_FLAG_DECODEONLY          MMALBufferFlag = (1 << iota)                                                 // Signals the output buffer won't be used, just update reference frames
+	MMAL_BUFFER_FLAG_NAL_END             MMALBufferFlag = (1 << iota)                                                 // Signals that the end of the current payload ends a NAL
+	MMAL_BUFFER_FLAG_FRAME               MMALBufferFlag = (MMAL_BUFFER_FLAG_FRAME_START | MMAL_BUFFER_FLAG_FRAME_END) // Signals that the current payload contains only complete frames (1 or more)
+	MMAL_BUFFER_FLAG_MIN                                = MMAL_BUFFER_FLAG_EOS
+	MMAL_BUFFER_FLAG_MAX                                = MMAL_BUFFER_FLAG_NAL_END
+)
+
 ////////////////////////////////////////////////////////////////////////////////
 // VIDEO ENCODINGS
 
@@ -685,6 +705,16 @@ var (
 	MMAL_ENCODING_BGR24_SLICE = MMAL_FOURCC('b', 'g', 'r', '3')
 	MMAL_ENCODING_BGR32       = MMAL_FOURCC('B', 'G', 'R', '4')
 	MMAL_ENCODING_BGR32_SLICE = MMAL_FOURCC('b', 'g', 'r', '4')
+)
+
+////////////////////////////////////////////////////////////////////////////////
+// CONTROL EVENTS
+
+var (
+	MMAL_EVENT_ERROR             = MMAL_FOURCC('E', 'R', 'R', 'O')
+	MMAL_EVENT_EOS               = MMAL_FOURCC('E', 'E', 'O', 'S') // End-of-stream event. Data contains a MMAL_EVENT_END_OF_STREAM_T
+	MMAL_EVENT_FORMAT_CHANGED    = MMAL_FOURCC('E', 'F', 'C', 'H') // Format changed event. Data contains a MMAL_EVENT_FORMAT_CHANGED_T
+	MMAL_EVENT_PARAMETER_CHANGED = MMAL_FOURCC('E', 'P', 'C', 'H') // Parameter changed event. Data contains a MMAL_EVENT_PARAMETER_CHANGED_T
 )
 
 func MMAL_FOURCC(a, b, c, d uint8) MMALEncodingType {
@@ -1005,4 +1035,44 @@ func (m MMALCameraExposureMode) String() string {
 	default:
 		return "[?? Invalid MMALCameraExposureMode value]"
 	}
+}
+
+func (f MMALBufferFlag) String() string {
+	parts := ""
+	for flag := MMAL_BUFFER_FLAG_MIN; flag <= MMAL_BUFFER_FLAG_MAX; flag <<= 1 {
+		if f&flag == 0 {
+			continue
+		}
+		switch flag {
+		case MMAL_BUFFER_FLAG_EOS:
+			parts += "|" + "MMAL_BUFFER_FLAG_EOS"
+		case MMAL_BUFFER_FLAG_FRAME_START:
+			parts += "|" + "MMAL_BUFFER_FLAG_FRAME_START"
+		case MMAL_BUFFER_FLAG_FRAME_END:
+			parts += "|" + "MMAL_BUFFER_FLAG_FRAME_END"
+		case MMAL_BUFFER_FLAG_KEYFRAME:
+			parts += "|" + "MMAL_BUFFER_FLAG_KEYFRAME"
+		case MMAL_BUFFER_FLAG_DISCONTINUITY:
+			parts += "|" + "MMAL_BUFFER_FLAG_DISCONTINUITY"
+		case MMAL_BUFFER_FLAG_CONFIG:
+			parts += "|" + "MMAL_BUFFER_FLAG_CONFIG"
+		case MMAL_BUFFER_FLAG_ENCRYPTED:
+			parts += "|" + "MMAL_BUFFER_FLAG_ENCRYPTED"
+		case MMAL_BUFFER_FLAG_CODECSIDEINFO:
+			parts += "|" + "MMAL_BUFFER_FLAG_CODECSIDEINFO"
+		case MMAL_BUFFER_FLAGS_SNAPSHOT:
+			parts += "|" + "MMAL_BUFFER_FLAGS_SNAPSHOT"
+		case MMAL_BUFFER_FLAG_CORRUPTED:
+			parts += "|" + "MMAL_BUFFER_FLAG_CORRUPTED"
+		case MMAL_BUFFER_FLAG_TRANSMISSION_FAILED:
+			parts += "|" + "MMAL_BUFFER_FLAG_TRANSMISSION_FAILED"
+		case MMAL_BUFFER_FLAG_DECODEONLY:
+			parts += "|" + "MMAL_BUFFER_FLAG_DECODEONLY"
+		case MMAL_BUFFER_FLAG_NAL_END:
+			parts += "|" + "MMAL_BUFFER_FLAG_NAL_END"
+		default:
+			parts += "|" + "[?? Invalid MMALBufferFlag value]"
+		}
+	}
+	return strings.Trim(parts, "|")
 }

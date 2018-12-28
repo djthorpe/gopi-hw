@@ -31,6 +31,21 @@ void mmal_port_callback(MMAL_PORT_T* port, MMAL_BUFFER_HEADER_T* buffer);
 import "C"
 
 ////////////////////////////////////////////////////////////////////////////////
+// CALLBACK REGISTRATION
+
+var (
+	port_callback = make(map[*C.MMAL_PORT_T]MMAL_PortCallback, 0)
+)
+
+func MMALPortRegisterCallback(port *C.MMAL_PORT_T, callback MMAL_PortCallback) {
+	port_callback[port] = callback
+}
+
+func MMALPortDeregisterCallback(port *C.MMAL_PORT_T) {
+	delete(port_callback, port)
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS - PORTS
 
 func MMALPortEnable(handle MMAL_PortHandle) error {
@@ -66,7 +81,7 @@ func MMALPortType(handle MMAL_PortHandle) MMAL_PortType {
 }
 
 func MMALPortIndex(handle MMAL_PortHandle) uint {
-	return uint(handle.index)
+	return uint(handle.index_all)
 }
 
 func MMALPortIsEnabled(handle MMAL_PortHandle) bool {
@@ -109,16 +124,16 @@ func MMALPortComponent(handle MMAL_PortHandle) MMAL_ComponentHandle {
 	return handle.component
 }
 
-func MMALPortBufferNum(handle MMAL_PortHandle) (uint32, uint32) {
-	// Minimum & recommended number of buffers the port requires
+func MMALPortBufferNum(handle MMAL_PortHandle) (uint32, uint32, uint32) {
+	// Current, Minimum & recommended number of buffers the port requires
 	// A value of zero for recommendation means no special recommendation
-	return uint32(handle.buffer_num_min), uint32(handle.buffer_num_recommended)
+	return uint32(handle.buffer_num), uint32(handle.buffer_num_min), uint32(handle.buffer_num_recommended)
 }
 
-func MMALPortBufferSize(handle MMAL_PortHandle) (uint32, uint32) {
-	// Minimum & recommended size of buffers the port requires
+func MMALPortBufferSize(handle MMAL_PortHandle) (uint32, uint32, uint32) {
+	// Current, Minimum & recommended size of buffers the port requires
 	// A value of zero means no special recommendation
-	return uint32(handle.buffer_size_min), uint32(handle.buffer_size_recommended)
+	return uint32(handle.buffer_size), uint32(handle.buffer_size_min), uint32(handle.buffer_size_recommended)
 }
 
 func MMALPortBufferSet(handle MMAL_PortHandle, num, size uint32) {
@@ -155,5 +170,9 @@ func MMALPortSetDisplayRegion(handle MMAL_PortHandle, value MMAL_DisplayRegion) 
 
 //export mmal_port_callback
 func mmal_port_callback(port *C.MMAL_PORT_T, buffer *C.MMAL_BUFFER_HEADER_T) {
-	fmt.Printf("TODO: mmal_port_callback port=%v buffer=%v\n", port, buffer)
+	if fn, exists := port_callback[port]; exists {
+		fn(port, buffer)
+	} else {
+		fmt.Printf("mmal_port_callback{port=%v buffer=%v}\n", port, buffer)
+	}
 }

@@ -52,23 +52,7 @@ type (
 	MMAL_CameraAnnotation    (*C.MMAL_PARAMETER_CAMERA_ANNOTATE_V4_T)
 )
 
-////////////////////////////////////////////////////////////////////////////////
-// PUBLIC METHODS - QUEUES
-/*
-func MMALPortQueueCreate(handle MMAL_PortHandle) (MMAL_Pool, error) {
-	if pool := C.mmal_port_pool_create(handle, C.uint32_t(num), C.uint32_t(payload_size)); pool == nil {
-		return nil, MMAL_EINVAL
-	} else {
-		C.mmal_pool_callback_set(pool, C.mmal_bh_release_callback, nil)
-		return pool, nil
-	}
-}
-
-func MMALPortQueueDestroy(handle MMAL_PortHandle, pool MMAL_Pool) error {
-	C.mmal_port_pool_destroy(handle, pool)
-	return nil
-}
-*/
+type MMAL_PortCallback func(port MMAL_PortHandle, buffer MMAL_Buffer)
 
 ////////////////////////////////////////////////////////////////////////////////
 // PRIVATE METHODS - OTHER

@@ -72,8 +72,8 @@ func MMALEncodeTest(app *gopi.AppInstance, mmal hw.MMAL, encoder hw.MMALComponen
 
 FOR_LOOP:
 	for {
-		// Wait for an empty buffer to be available on a port, block until one becomes available
-		if buffer, err := encoder.GetEmptyBufferOnPort(port_out, true); err != nil {
+		// Get an empty buffer on input port
+		if buffer, err := encoder.GetEmptyBufferOnPort(port_in, true); err != nil {
 			return err
 		} else {
 			fmt.Println("buffer=", buffer)

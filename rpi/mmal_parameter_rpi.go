@@ -226,7 +226,7 @@ func MMALPortParameterSetVideoProfile(handle MMAL_PortHandle, name MMAL_Paramete
 }
 
 func MMALParamGetArrayVideoProfile(handle MMAL_ParameterHandle) []hw.MMALVideoProfile {
-	fmt.Println("<TODO> SIZE=", handle.size) // TODO
+	fmt.Println("<TODO> SIZE=", handle.size) //
 	return []hw.MMALVideoProfile{}
 }
 

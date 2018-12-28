@@ -25,7 +25,7 @@ import (
 // OPEN AND CLOSE
 
 func (this *component) Close() error {
-	this.log.Debug("<sys.hw.mmal.component>Close{}")
+	this.log.Debug("<sys.hw.mmal.component>Close{ name='%v' }", this.Name())
 
 	err := new(errors.CompoundError)
 
@@ -34,36 +34,38 @@ func (this *component) Close() error {
 		return gopi.ErrOutOfOrder
 	}
 
-	// Disable input and output ports, destroy pools
+	// Disable ports
 	for _, port := range this.input {
-		if rpi.MMALPortIsEnabled(port.handle) {
-			if err_ := rpi.MMALPortDisable(port.handle); err_ != nil {
-				err.Add(err_)
-			}
-		}
-		if err_ := rpi.MMALPortPoolDestroy(port.handle, port.pool); err_ != nil {
+		if err_ := port.Close(); err_ != nil {
 			err.Add(err_)
 		}
 	}
 	for _, port := range this.output {
-		if rpi.MMALPortIsEnabled(port.handle) {
-			if err_ := rpi.MMALPortDisable(port.handle); err_ != nil {
-				err.Add(err_)
-			}
-		}
-		if err_ := rpi.MMALPortPoolDestroy(port.handle, port.pool); err_ != nil {
+		if err_ := port.Close(); err_ != nil {
 			err.Add(err_)
 		}
 	}
+	for _, port := range this.clock {
+		if err_ := port.Close(); err_ != nil {
+			err.Add(err_)
+		}
+	}
+	if err_ := this.control.Close(); err_ != nil {
+		err.Add(err_)
+	}
 
-	// Destroy semaphore
-	rpi.VCSemaphoreDelete(this.sema)
-
+	// Destroy component
 	if err_ := rpi.MMALComponentDestroy(this.handle); err_ != nil {
 		err.Add(err_)
 	}
 
+	// Release resources
 	this.handle = nil
+	this.control = nil
+	this.input = nil
+	this.output = nil
+	this.clock = nil
+	this.port_map = nil
 
 	return err.ErrorOrSelf()
 }
@@ -72,7 +74,11 @@ func (this *component) Close() error {
 // STRINGIFY
 
 func (this *component) String() string {
-	return fmt.Sprintf("<sys.hw.mmal.component>{ name='%v' id=%08X enabled=%v control=%v input=%v output=%v clock=%v }", this.Name(), this.Id(), this.Enabled(), this.control, this.input, this.output, this.clock)
+	if this.handle == nil {
+		return fmt.Sprintf("<sys.hw.mmal.component>{ nil }")
+	} else {
+		return fmt.Sprintf("<sys.hw.mmal.component>{ name='%v' id=%08X enabled=%v control=%v input=%v output=%v clock=%v }", this.Name(), this.Id(), this.Enabled(), this.control, this.input, this.output, this.clock)
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -171,18 +177,28 @@ func (this *component) Clocks() []hw.MMALPort {
 ////////////////////////////////////////////////////////////////////////////////
 // BUFFERS
 
-func (this *component) GetEmptyBufferOnPort(port hw.MMALPort, blocking bool) (hw.MMALBuffer, error) {
-	// Port needs to be input or output
-	if this.pool == nil {
+func (this *component) GetEmptyBufferOnPort(p hw.MMALPort, blocking bool) (hw.MMALBuffer, error) {
+	this.log.Debug2("<sys.hw.mmal.component>GetEmptyBufferOnPort{ name='%v' port=%v blocking=%v }", this.Name(), p, blocking)
+	if port_, ok := p.(*port); ok == false {
 		return nil, gopi.ErrBadParameter
+	} else if _, exists := this.port_map[port_.handle]; exists == false {
+		return nil, fmt.Errorf("<sys.hw.mmal.component>GetEmptyBufferOnPort{ name='%v' }: Port is invalid: %v", p)
+	} else if pool := port_.pool; pool == nil {
+		return nil, fmt.Errorf("<sys.hw.mmal.component>GetEmptyBufferOnPort{ name='%v' }: Pool is invalid on port: %v", p)
+	} else {
+		port_.Add(1)
+		for {
+			if buffer := rpi.MMALPoolGetBuffer(pool); buffer == nil && blocking == false {
+				return nil, nil
+			} else {
+				this.log.Debug2("GetEmptyBufferOnPort: Waiting for empty buffer to become available")
+				port_.Wait()
+			}
+		}
 	}
-	for {
-		buffer := rpi.MMALPoolGetBuffer(this.pool)
-		fmt.Println("BUFFER", buffer)
-		return nil, gopi.ErrNotImplemented
-	}
+	return nil, gopi.ErrNotImplemented
 }
 
-func (this *port) GetFullBufferOnPort(port hw.MMALPort, blocking bool) (hw.MMALBuffer, error) {
+func (this *component) GetFullBufferOnPort(port hw.MMALPort, blocking bool) (hw.MMALBuffer, error) {
 	return nil, gopi.ErrNotImplemented
 }
