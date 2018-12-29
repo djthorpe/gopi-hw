@@ -12,6 +12,7 @@ package hw
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"strings"
 
 	// Frameworks
@@ -117,13 +118,16 @@ type MMALPort interface {
 	Disconnect() error
 	Flush() error
 
-	// Formats
+	// Format
 	Format() MMALFormat
 	CopyFormat(MMALFormat) error
 	VideoFormat() MMALVideoFormat
 	AudioFormat() MMALAudioFormat
 	SubpictureFormat() MMALSubpictureFormat
 	CommitFormatChange() error
+
+	// Send Buffer to input port
+	Send(MMALBuffer) error
 
 	// Port Parameters
 	MMALCommonParameters
@@ -132,6 +136,8 @@ type MMALPort interface {
 }
 
 type MMALBuffer interface {
+	// Fill buffer
+	Fill(io.Reader) (uint32, error)
 }
 
 type MMALPortConnection interface {

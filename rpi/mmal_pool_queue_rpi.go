@@ -20,11 +20,12 @@ package rpi
 #include <interface/mmal/util/mmal_util.h>
 
 // Callback Functions
-MMAL_BOOL_T mmal_bh_release_callback(MMAL_POOL_T* pool, MMAL_BUFFER_HEADER_T* buffer,void *userdata);
+MMAL_BOOL_T mmal_buffer_release_callback(MMAL_POOL_T* pool, MMAL_BUFFER_HEADER_T* buffer,void* userdata);
 */
 import "C"
 import (
 	"fmt"
+	"reflect"
 	"unsafe"
 )
 
@@ -35,8 +36,7 @@ func MMALPortPoolCreate(handle MMAL_PortHandle, num, payload_size uint32) (MMAL_
 	if pool := C.mmal_port_pool_create(handle, C.uint32_t(num), C.uint32_t(payload_size)); pool == nil {
 		return nil, MMAL_EINVAL
 	} else {
-		fmt.Println("Setting pool callback", pool, C.mmal_bh_release_callback)
-		C.mmal_pool_callback_set(pool, C.MMAL_POOL_BH_CB_T(C.mmal_bh_release_callback), nil)
+		C.mmal_pool_callback_set(pool, C.MMAL_POOL_BH_CB_T(C.mmal_buffer_release_callback), nil)
 		return pool, nil
 	}
 }
@@ -47,7 +47,6 @@ func MMALPortPoolDestroy(handle MMAL_PortHandle, pool MMAL_Pool) error {
 }
 
 func MMALPoolGetBuffer(pool MMAL_Pool) MMAL_Buffer {
-	fmt.Println("MMALPoolGetBuffer", pool, pool.queue)
 	return MMAL_Buffer(C.mmal_queue_get(pool.queue))
 }
 
@@ -63,11 +62,12 @@ func MMALPoolString(pool MMAL_Pool) string {
 	if pool == nil {
 		return "<MMAL_Pool>{ nil }"
 	} else {
-		buffers := make([]string, pool.headers_num)
-		for i := range buffers {
-			buffers[i] = "<TODO>"
+		buffers := mmal_pool_buffer_array(pool)
+		buffers_string := ""
+		for _, buffer := range buffers {
+			buffers_string += MMALBufferString(buffer) + " "
 		}
-		return fmt.Sprintf("<MMAL_Pool>{ queue=%v buffers=%v }", MMALQueueString(pool.queue), buffers)
+		return fmt.Sprintf("<MMAL_Pool>{ queue=%v buffers=[ %v] }", MMALQueueString(pool.queue), buffers_string)
 	}
 }
 
@@ -86,15 +86,25 @@ func MMALQueueString(handle MMAL_Queue) string {
 	if handle == nil {
 		return "<MMAL_Queue>{ nil }"
 	} else {
-		return fmt.Sprintf("<MMAL_Queue>{ %v }", handle)
+		return fmt.Sprintf("<MMAL_Queue>{ length=%v }", C.mmal_queue_length(handle))
 	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// PRIVATE METHODS - CALLBACKS
+// PRIVATE METHODS
 
-//export mmal_bh_release_callback
-func mmal_bh_release_callback(pool *C.MMAL_POOL_T, buffer *C.MMAL_BUFFER_HEADER_T, userdata unsafe.Pointer) C.MMAL_BOOL_T {
-	fmt.Printf("TODO: mmal_bh_release_callback pool=%v buffer=%v userdata=%v\n", pool, buffer, userdata)
-	return MMAL_BOOL_FALSE
+func mmal_pool_buffer_array(pool MMAL_Pool) []MMAL_Buffer {
+	var buffers []MMAL_Buffer
+	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&buffers)))
+	sliceHeader.Cap = int(pool.headers_num)
+	sliceHeader.Len = int(pool.headers_num)
+	sliceHeader.Data = uintptr(unsafe.Pointer(pool.header))
+	return buffers
+}
+
+//export mmal_buffer_release_callback
+func mmal_buffer_release_callback(pool *C.MMAL_POOL_T, buffer *C.MMAL_BUFFER_HEADER_T, userdata unsafe.Pointer) C.MMAL_BOOL_T {
+	// Callback from the pool - buffer is available
+	fmt.Printf("TODO: mmal_buffer_release_callback pool=%v buffer=%v userdata=%v\n", MMALPoolString(pool), MMALBufferString(buffer), userdata)
+	return MMAL_BOOL_TRUE
 }

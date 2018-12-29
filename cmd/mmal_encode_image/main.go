@@ -12,6 +12,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"reflect"
+	"unsafe"
 
 	// Frameworks
 	gopi "github.com/djthorpe/gopi"
@@ -25,6 +27,29 @@ import (
 )
 
 ////////////////////////////////////////////////////////////////////////////////
+
+func ByteArray(ptr uintptr, len int) []byte {
+	var array []byte
+	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&array)))
+	sliceHeader.Cap = len
+	sliceHeader.Len = len
+	sliceHeader.Data = ptr
+	return array
+}
+
+func CreateRGBImage(width, height uint32) []byte {
+	// Create the image
+	image := make([]uint32, width*height)
+	i := 0
+	for y := uint32(0); y < height; y++ {
+		for x := uint32(0); x < width; x++ {
+			// ALPHA,BLUE,GREEN,RED
+			image[i] = 0xFF0000FF
+			i++
+		}
+	}
+	return ByteArray(uintptr(unsafe.Pointer(&image[0])), len(image)*4)
+}
 
 func MMALEncodeTest(app *gopi.AppInstance, mmal hw.MMAL, encoder hw.MMALComponent, format hw.MMALEncodingType, width, height uint32) error {
 	port_in := encoder.Inputs()[0]
@@ -70,14 +95,19 @@ func MMALEncodeTest(app *gopi.AppInstance, mmal hw.MMAL, encoder hw.MMALComponen
 		return err
 	}
 
-FOR_LOOP:
+	// Create an uncompressed image array of bytes
+	//	reader := bytes.NewReader(CreateRGBImage(width, height))
+
+	// Feed input port and accept output
 	for {
-		// Get an empty buffer on input port
+		fmt.Println("FOR LOOP STARTS")
+		// Get an empty buffer on input port, block until we get one, then fill it and send it
 		if buffer, err := encoder.GetEmptyBufferOnPort(port_in, true); err != nil {
 			return err
-		} else {
-			fmt.Println("buffer=", buffer)
-			break FOR_LOOP
+			//		} else if _, err := buffer.Fill(reader); err != nil {
+			//			return err
+		} else if err := port_in.Send(buffer); err != nil {
+			return err
 		}
 	}
 

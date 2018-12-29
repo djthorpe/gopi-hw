@@ -147,6 +147,14 @@ func MMALPortBufferAlignment(handle MMAL_PortHandle) uint32 {
 	return uint32(handle.buffer_alignment_min)
 }
 
+func MMALPortSendBuffer(handle MMAL_PortHandle, buffer MMAL_Buffer) error {
+	if status := MMAL_Status(C.mmal_port_send_buffer(handle, buffer)); status == MMAL_SUCCESS {
+		return nil
+	} else {
+		return status
+	}
+}
+
 func MMALPortSetURI(handle MMAL_PortHandle, value string) error {
 	cValue := C.CString(value)
 	defer C.free(unsafe.Pointer(cValue))
@@ -166,7 +174,7 @@ func MMALPortSetDisplayRegion(handle MMAL_PortHandle, value MMAL_DisplayRegion) 
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// PRIVATE METHODS - CALLBACKS
+// PRIVATE METHODS
 
 //export mmal_port_callback
 func mmal_port_callback(port *C.MMAL_PORT_T, buffer *C.MMAL_BUFFER_HEADER_T) {

@@ -67,6 +67,11 @@ type connection struct {
 	input, output hw.MMALPort
 }
 
+type buffer struct {
+	log    gopi.Logger
+	handle rpi.MMAL_Buffer
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // OPEN AND CLOSE
 
@@ -275,15 +280,17 @@ func (this *mmal) NewPort(c *component, handle rpi.MMAL_PortHandle) *port {
 	rpi.MMALPortRegisterCallback(handle, func(port rpi.MMAL_PortHandle, buffer rpi.MMAL_Buffer) {
 		if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_CONTROL {
 			// Callback from a control port. Error events will be received there
-			fmt.Printf("CONTROL PORT BUFFER: port=%v, buffer=%v\n", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
+			fmt.Printf("CALLBACK CONTROL PORT BUFFER: port=%v, buffer=%v\n", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
 		} else if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_INPUT {
 			// Callback from an input port. Buffer is released
-			fmt.Printf("INPUT PORT BUFFER: port=%v, buffer=%v\n", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
+			if err := rpi.MMALBufferRelease(buffer); err != nil {
+				fmt.Printf("CALLBACK INPUT PORT BUFFER: port=%v, buffer=%v: %v\n", rpi.MMALPortName(port), rpi.MMALBufferString(buffer), err)
+			}
 		} else if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_OUTPUT {
 			// Callback from an output port. Buffer is queued for the next component
-			fmt.Printf("OUTPUT PORT BUFFER: port=%v, buffer=%v\n", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
+			fmt.Printf("CALLBACK OUTPUT PORT BUFFER: port=%v, buffer=%v\n", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
 		} else {
-			fmt.Printf("PORT CALLBACK: component=%v port=%v, buffer=%v\n", c.Name(), rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
+			fmt.Printf("CALLBACK OTHER PORT CALLBACK: component=%v port=%v, buffer=%v\n", c.Name(), rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
 		}
 	})
 

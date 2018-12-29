@@ -186,17 +186,19 @@ func (this *component) GetEmptyBufferOnPort(p hw.MMALPort, blocking bool) (hw.MM
 	} else if pool := port_.pool; pool == nil {
 		return nil, fmt.Errorf("<sys.hw.mmal.component>GetEmptyBufferOnPort{ name='%v' }: Pool is invalid on port: %v", p)
 	} else {
-		port_.Add(1)
+		// Get a buffer from the pool queue
 		for {
-			if buffer := rpi.MMALPoolGetBuffer(pool); buffer == nil && blocking == false {
+			if buffer_handle := rpi.MMALPoolGetBuffer(pool); buffer_handle != nil {
+				return &buffer{this.log, buffer_handle}, nil
+			} else if blocking == false {
 				return nil, nil
 			} else {
 				this.log.Debug2("GetEmptyBufferOnPort: Waiting for empty buffer to become available")
+				port_.Add(1)
 				port_.Wait()
 			}
 		}
 	}
-	return nil, gopi.ErrNotImplemented
 }
 
 func (this *component) GetFullBufferOnPort(port hw.MMALPort, blocking bool) (hw.MMALBuffer, error) {
