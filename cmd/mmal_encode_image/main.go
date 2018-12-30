@@ -10,9 +10,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
+	"strings"
 	"unsafe"
 
 	// Frameworks
@@ -37,6 +40,8 @@ func ByteArray(ptr uintptr, len int) []byte {
 	return array
 }
 
+// CreateRGBImage returns uncompressed RGBA image with red, green and blue stripes
+// every 100 pixels
 func CreateRGBImage(width, height uint32) []byte {
 	// Create the image
 	image := make([]uint32, width*height)
@@ -44,7 +49,14 @@ func CreateRGBImage(width, height uint32) []byte {
 	for y := uint32(0); y < height; y++ {
 		for x := uint32(0); x < width; x++ {
 			// ALPHA,BLUE,GREEN,RED
-			image[i] = 0xFF0000FF
+			switch {
+			case x%300 < 100:
+				image[i] = 0xFF00FF00
+			case x%300 < 200:
+				image[i] = 0xFFFF0000
+			default:
+				image[i] = 0xFF0000FF
+			}
 			i++
 		}
 	}
@@ -83,7 +95,7 @@ func MMALEncodeTest(app *gopi.AppInstance, mmal hw.MMAL, encoder hw.MMALComponen
 	}
 
 	// Set JPEG Quality factor
-	if err := port_out.SetJPEGQFactor(100); err != nil {
+	if err := port_out.SetJPEGQFactor(5); err != nil {
 		return err
 	}
 
@@ -95,19 +107,56 @@ func MMALEncodeTest(app *gopi.AppInstance, mmal hw.MMAL, encoder hw.MMALComponen
 		return err
 	}
 
-	// Create an uncompressed image array of bytes
-	//	reader := bytes.NewReader(CreateRGBImage(width, height))
+	// Get filename
+	ext := strings.ToLower(strings.TrimSpace(strings.Trim(fmt.Sprint(format), "'")))
+	reader := bytes.NewReader(CreateRGBImage(width, height))
+	writer, _ := os.Create("encoded_image." + ext)
+	defer writer.Close()
+	eof := false
+	eoe := false
 
 	// Feed input port and accept output
 	for {
-		fmt.Println("FOR LOOP STARTS")
-		// Get an empty buffer on input port, block until we get one, then fill it and send it
-		if buffer, err := encoder.GetEmptyBufferOnPort(port_in, true); err != nil {
+		// Get an empty buffer on from output pool, block until we get one, then send it
+		// to the port so that it can be used for filling the result of the encode
+		if buffer, err := encoder.GetEmptyBufferOnPort(port_out, true); err != nil {
 			return err
-			//		} else if _, err := buffer.Fill(reader); err != nil {
-			//			return err
+		} else if err := port_out.Send(buffer); err != nil {
+			return err
+		}
+
+		// Get an empty buffer on input port, block until we get one, then fill it
+		// with uncompressed image data and send it
+		if eof {
+			// Do nothing when all bytes have been sent
+		} else if buffer, err := encoder.GetEmptyBufferOnPort(port_in, true); err != nil {
+			return err
+		} else if _, err := buffer.Fill(reader); err != nil && err != io.EOF {
+			return err
 		} else if err := port_in.Send(buffer); err != nil {
 			return err
+		} else if buffer.Flags()&hw.MMAL_BUFFER_FLAG_EOS != 0 {
+			eof = true
+		}
+
+		// Get a full buffer on the output port, block until we get one,
+		// and write out to file
+		if buffer, err := encoder.GetFullBufferOnPort(port_out, true); err != nil {
+			return err
+		} else if buffer != nil {
+			if _, err := writer.Write(buffer.Data()); err != nil {
+				return err
+			}
+			eoe = buffer.Flags()&hw.MMAL_BUFFER_FLAG_EOS != 0
+			if err := buffer.Release(); err != nil {
+				return err
+			}
+		}
+
+		// Check for end of input and output, break out of loop
+		// when both input and outputs are finished
+		if eof && eoe {
+			break
 		}
 	}
 
@@ -128,12 +177,17 @@ func MMALEncodeTest(app *gopi.AppInstance, mmal hw.MMAL, encoder hw.MMALComponen
 	return nil
 }
 
+// Create JPEG, PNG and BMP encoded images
 func Main(app *gopi.AppInstance, done chan<- struct{}) error {
 	if mmal := app.ModuleInstance("hw/mmal").(hw.MMAL); mmal == nil {
 		return fmt.Errorf("Missing MMAL module")
 	} else if image_encoder, err := mmal.ImageEncoderComponent(); err != nil {
 		return err
 	} else if err := MMALEncodeTest(app, mmal, image_encoder, hw.MMAL_ENCODING_JPEG, 1920, 1080); err != nil {
+		return err
+	} else if err := MMALEncodeTest(app, mmal, image_encoder, hw.MMAL_ENCODING_PNG, 1920, 1080); err != nil {
+		return err
+	} else if err := MMALEncodeTest(app, mmal, image_encoder, hw.MMAL_ENCODING_BMP, 1920, 1080); err != nil {
 		return err
 	}
 

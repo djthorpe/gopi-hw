@@ -236,10 +236,10 @@ func (this *port) SubpictureFormat() hw.MMALSubpictureFormat {
 }
 
 func (this *port) Send(b hw.MMALBuffer) error {
-	this.log.Debug2("<sys.hw.mmal.port>Send{ name='%v' buffer=%v }", this.Name(), b)
 	if buffer_, ok := b.(*buffer); ok == false {
 		return gopi.ErrBadParameter
 	} else {
+		this.log.Debug2("<sys.hw.mmal.port>Send{ name='%v' buffer=%v }", this.Name(), rpi.MMALBufferString(buffer_.handle))
 		return rpi.MMALPortSendBuffer(this.handle, buffer_.handle)
 	}
 }

@@ -90,6 +90,14 @@ func MMALQueueString(handle MMAL_Queue) string {
 	}
 }
 
+func MMALQueuePut(handle MMAL_Queue, buffer MMAL_Buffer) {
+	C.mmal_queue_put(handle, buffer)
+}
+
+func MMALQueueGet(handle MMAL_Queue) MMAL_Buffer {
+	return MMAL_Buffer(C.mmal_queue_get(handle))
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // PRIVATE METHODS
 
@@ -104,7 +112,8 @@ func mmal_pool_buffer_array(pool MMAL_Pool) []MMAL_Buffer {
 
 //export mmal_buffer_release_callback
 func mmal_buffer_release_callback(pool *C.MMAL_POOL_T, buffer *C.MMAL_BUFFER_HEADER_T, userdata unsafe.Pointer) C.MMAL_BOOL_T {
-	// Callback from the pool - buffer is available
-	fmt.Printf("TODO: mmal_buffer_release_callback pool=%v buffer=%v userdata=%v\n", MMALPoolString(pool), MMALBufferString(buffer), userdata)
-	return MMAL_BOOL_TRUE
+	// Callback from the pool - empty buffer is available
+	MMALQueuePut(pool.queue, buffer)
+	//fmt.Printf("TODO: mmal_buffer_release_callback pool=%v buffer=%v userdata=%v\n", MMALPoolString(pool), MMALBufferString(buffer), userdata)
+	return MMAL_BOOL_FALSE
 }

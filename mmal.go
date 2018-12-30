@@ -136,8 +136,18 @@ type MMALPort interface {
 }
 
 type MMALBuffer interface {
+	// Acquire and release
+	Acquire() error
+	Release() error
+
 	// Fill buffer
 	Fill(io.Reader) (uint32, error)
+
+	// Return buffer data
+	Data() []byte
+
+	// Buffer flags
+	Flags() MMALBufferFlag
 }
 
 type MMALPortConnection interface {

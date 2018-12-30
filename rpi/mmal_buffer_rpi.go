@@ -49,8 +49,24 @@ func MMALBufferBytes(handle MMAL_Buffer) []byte {
 	return value
 }
 
+// Return data from buffer
+func MMALBufferData(handle MMAL_Buffer) []byte {
+	var value []byte
+	// Make a fake slice
+	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&value)))
+	sliceHeader.Cap = int(handle.alloc_size)
+	sliceHeader.Len = int(handle.length)
+	sliceHeader.Data = uintptr(unsafe.Pointer(handle.data))
+	// Return data
+	return value
+}
+
 func MMALBufferFlags(handle MMAL_Buffer) hw.MMALBufferFlag {
 	return hw.MMALBufferFlag(handle.flags)
+}
+
+func MMALBufferSetFlags(handle MMAL_Buffer, value hw.MMALBufferFlag) {
+	handle.flags = C.uint32_t(value)
 }
 
 func MMALBufferLength(handle MMAL_Buffer) uint32 {
@@ -89,7 +105,17 @@ func MMALBufferString(handle MMAL_Buffer) string {
 	}
 }
 
+func MMALBufferAcquire(handle MMAL_Buffer) error {
+	C.mmal_buffer_header_acquire(handle)
+	return nil
+}
+
 func MMALBufferRelease(handle MMAL_Buffer) error {
 	C.mmal_buffer_header_release(handle)
+	return nil
+}
+
+func MMALBufferReset(handle MMAL_Buffer) error {
+	C.mmal_buffer_header_reset(handle)
 	return nil
 }

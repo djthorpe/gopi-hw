@@ -13,6 +13,7 @@ package mmal
 
 import (
 	"fmt"
+	"time"
 
 	// Frameworks
 	"github.com/djthorpe/gopi"
@@ -182,9 +183,9 @@ func (this *component) GetEmptyBufferOnPort(p hw.MMALPort, blocking bool) (hw.MM
 	if port_, ok := p.(*port); ok == false {
 		return nil, gopi.ErrBadParameter
 	} else if _, exists := this.port_map[port_.handle]; exists == false {
-		return nil, fmt.Errorf("<sys.hw.mmal.component>GetEmptyBufferOnPort{ name='%v' }: Port is invalid: %v", p)
+		return nil, fmt.Errorf("Port is invalid: %v", p)
 	} else if pool := port_.pool; pool == nil {
-		return nil, fmt.Errorf("<sys.hw.mmal.component>GetEmptyBufferOnPort{ name='%v' }: Pool is invalid on port: %v", p)
+		return nil, fmt.Errorf("Pool is invalid on port: %v", p)
 	} else {
 		// Get a buffer from the pool queue
 		for {
@@ -194,13 +195,36 @@ func (this *component) GetEmptyBufferOnPort(p hw.MMALPort, blocking bool) (hw.MM
 				return nil, nil
 			} else {
 				this.log.Debug2("GetEmptyBufferOnPort: Waiting for empty buffer to become available")
-				port_.Add(1)
-				port_.Wait()
+				time.Sleep(time.Second)
+				//port_.Add(1)
+				//port_.Wait()
 			}
 		}
 	}
 }
 
-func (this *component) GetFullBufferOnPort(port hw.MMALPort, blocking bool) (hw.MMALBuffer, error) {
-	return nil, gopi.ErrNotImplemented
+func (this *component) GetFullBufferOnPort(p hw.MMALPort, blocking bool) (hw.MMALBuffer, error) {
+	this.log.Debug2("<sys.hw.mmal.component>GetFullBufferOnPort{ name='%v' port=%v blocking=%v }", this.Name(), p, blocking)
+	if port_, ok := p.(*port); ok == false {
+		return nil, gopi.ErrBadParameter
+	} else if _, exists := this.port_map[port_.handle]; exists == false {
+		return nil, fmt.Errorf("Port is invalid: %v", p)
+	} else if queue := port_.queue; queue == nil {
+		return nil, fmt.Errorf("Pool is invalid: %v", p)
+	} else {
+		// Get a buffer from the 'full queue'
+		for {
+			if buffer_handle := rpi.MMALQueueGet(queue); buffer_handle != nil {
+				this.log.Debug2("GetFullBufferOnPort: got %v", rpi.MMALBufferString(buffer_handle))
+				return &buffer{this.log, buffer_handle}, nil
+			} else if blocking == false {
+				return nil, nil
+			} else {
+				this.log.Debug2("GetFullBufferOnPort: Waiting for full buffer to become available")
+				time.Sleep(time.Second)
+				//port_.Add(1)
+				//port_.Wait()
+			}
+		}
+	}
 }
