@@ -70,7 +70,13 @@ func (this *port) String() string {
 	if this.handle == nil {
 		return fmt.Sprintf("<sys.hw.mmal.port>{ nil }")
 	} else {
-		return fmt.Sprintf("<sys.hw.mmal.port>{ name='%v' type=%v enabled=%v capabilities=%v format=%v pool=%v }", this.Name(), rpi.MMALPortType(this.handle), this.Enabled(), rpi.MMALPortCapabilities(this.handle), this.Format(), rpi.MMALPoolString(this.pool))
+		parts := ""
+		parts += fmt.Sprintf("name='%v' type=%v enabled=%v ", this.Name(), rpi.MMALPortType(this.handle), this.Enabled())
+		if cap := rpi.MMALPortCapabilities(this.handle); cap != 0 {
+			parts += fmt.Sprintf("capabilities=%v ", cap)
+		}
+		parts += fmt.Sprintf("format=%v pool=%v", this.Format(), rpi.MMALPoolString(this.pool))
+		return fmt.Sprintf("<sys.hw.mmal.port>{ %v}", parts)
 	}
 }
 

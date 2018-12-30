@@ -93,7 +93,7 @@ func Main(app *gopi.AppInstance, done chan<- struct{}) error {
 	} else if err := c2.SetEnabled(true); err != nil {
 		return err
 	} else {
-		// Display camera preview until interrupted
+		// Display video until interrupted
 		fmt.Println("Press CTRL+C to exit")
 		app.WaitForSignal()
 

@@ -292,11 +292,12 @@ func (this *mmal) NewPort(c *component, handle rpi.MMAL_PortHandle) *port {
 			}
 		} else if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_INPUT {
 			// Callback from an input port. Buffer is released
+			fmt.Printf("INPUT EVENT: %v: buffer=%v\n", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
 		} else if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_OUTPUT {
 			// Callback from an output port. Buffer is queued for the next component
 			rpi.MMALQueuePut(p.queue, buffer)
-			fmt.Printf("put buffer=%v => queue %v\n", rpi.MMALBufferString(buffer), rpi.MMALQueueString(p.queue))
-			// Don't release
+			fmt.Printf("OUTPUT EVENT: %v: buffer=%v => queue\n", rpi.MMALPortName(port), rpi.MMALBufferString(buffer), rpi.MMALQueueString(p.queue))
+			// Don't release the buffer, that is done later
 			buffer = nil
 		} else {
 			fmt.Printf("PORT CALLBACK: %v: buffer=%v\n", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))

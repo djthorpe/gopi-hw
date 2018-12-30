@@ -63,7 +63,7 @@ func CreateRGBImage(width, height uint32) []byte {
 	return ByteArray(uintptr(unsafe.Pointer(&image[0])), len(image)*4)
 }
 
-func MMALEncodeTest(app *gopi.AppInstance, mmal hw.MMAL, encoder hw.MMALComponent, format hw.MMALEncodingType, width, height uint32) error {
+func MMALEncodeTest(encoder hw.MMALComponent, format hw.MMALEncodingType, width, height uint32) error {
 	port_in := encoder.Inputs()[0]
 	port_out := encoder.Outputs()[0]
 	if port_in.Enabled() {
@@ -183,11 +183,11 @@ func Main(app *gopi.AppInstance, done chan<- struct{}) error {
 		return fmt.Errorf("Missing MMAL module")
 	} else if image_encoder, err := mmal.ImageEncoderComponent(); err != nil {
 		return err
-	} else if err := MMALEncodeTest(app, mmal, image_encoder, hw.MMAL_ENCODING_JPEG, 1920, 1080); err != nil {
+	} else if err := MMALEncodeTest(image_encoder, hw.MMAL_ENCODING_JPEG, 1920, 1080); err != nil {
 		return err
-	} else if err := MMALEncodeTest(app, mmal, image_encoder, hw.MMAL_ENCODING_PNG, 1920, 1080); err != nil {
+	} else if err := MMALEncodeTest(image_encoder, hw.MMAL_ENCODING_PNG, 1920, 1080); err != nil {
 		return err
-	} else if err := MMALEncodeTest(app, mmal, image_encoder, hw.MMAL_ENCODING_BMP, 1920, 1080); err != nil {
+	} else if err := MMALEncodeTest(image_encoder, hw.MMAL_ENCODING_BMP, 1920, 1080); err != nil {
 		return err
 	}
 
