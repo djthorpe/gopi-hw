@@ -110,53 +110,59 @@ func MMALEncodeTest(encoder hw.MMALComponent, format hw.MMALEncodingType, width,
 	// Get filename
 	ext := strings.ToLower(strings.TrimSpace(strings.Trim(fmt.Sprint(format), "'")))
 	reader := bytes.NewReader(CreateRGBImage(width, height))
-	writer, _ := os.Create("encoded_image." + ext)
-	defer writer.Close()
-	eof := false
-	eoe := false
+	if writer, err := os.Create("encoded_image." + ext); err != nil {
+		return err
+	} else {
+		defer writer.Close()
+		eof := false
+		eoe := false
 
-	// Feed input port and accept output
-	for {
-		// Get an empty buffer on from output pool, block until we get one, then send it
-		// to the port so that it can be used for filling the result of the encode
-		if buffer, err := encoder.GetEmptyBufferOnPort(port_out, true); err != nil {
-			return err
-		} else if err := port_out.Send(buffer); err != nil {
-			return err
-		}
+		// Report start of loop
+		fmt.Println("Encoding to:", writer.Name())
 
-		// Get an empty buffer on input port, block until we get one, then fill it
-		// with uncompressed image data and send it
-		if eof {
-			// Do nothing when all bytes have been sent
-		} else if buffer, err := encoder.GetEmptyBufferOnPort(port_in, true); err != nil {
-			return err
-		} else if _, err := buffer.Fill(reader); err != nil && err != io.EOF {
-			return err
-		} else if err := port_in.Send(buffer); err != nil {
-			return err
-		} else if buffer.Flags()&hw.MMAL_BUFFER_FLAG_EOS != 0 {
-			eof = true
-		}
-
-		// Get a full buffer on the output port, block until we get one,
-		// and write out to file
-		if buffer, err := encoder.GetFullBufferOnPort(port_out, true); err != nil {
-			return err
-		} else if buffer != nil {
-			if _, err := writer.Write(buffer.Data()); err != nil {
+		// Feed input port and accept output
+		for {
+			// Get an empty buffer on from output pool, block until we get one, then send it
+			// to the port so that it can be used for filling the result of the encode
+			if buffer, err := encoder.GetEmptyBufferOnPort(port_out, true); err != nil {
+				return err
+			} else if err := port_out.Send(buffer); err != nil {
 				return err
 			}
-			eoe = buffer.Flags()&hw.MMAL_BUFFER_FLAG_EOS != 0
-			if err := buffer.Release(); err != nil {
-				return err
-			}
-		}
 
-		// Check for end of input and output, break out of loop
-		// when both input and outputs are finished
-		if eof && eoe {
-			break
+			// Get an empty buffer on input port, block until we get one, then fill it
+			// with uncompressed image data and send it
+			if eof {
+				// Do nothing when all bytes have been sent
+			} else if buffer, err := encoder.GetEmptyBufferOnPort(port_in, true); err != nil {
+				return err
+			} else if _, err := buffer.Fill(reader); err != nil && err != io.EOF {
+				return err
+			} else if err := port_in.Send(buffer); err != nil {
+				return err
+			} else if buffer.Flags()&hw.MMAL_BUFFER_FLAG_EOS != 0 {
+				eof = true
+			}
+
+			// Get a full buffer on the output port, block until we get one,
+			// and write out to file
+			if buffer, err := encoder.GetFullBufferOnPort(port_out, true); err != nil {
+				return err
+			} else if buffer != nil {
+				if _, err := writer.Write(buffer.Data()); err != nil {
+					return err
+				}
+				eoe = buffer.Flags()&hw.MMAL_BUFFER_FLAG_EOS != 0
+				if err := buffer.Release(); err != nil {
+					return err
+				}
+			}
+
+			// Check for end of input and output, break out of loop
+			// when both input and outputs are finished
+			if eof && eoe {
+				break
+			}
 		}
 	}
 

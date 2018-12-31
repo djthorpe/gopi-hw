@@ -13,7 +13,6 @@ package mmal
 
 import (
 	"fmt"
-	"time"
 
 	// Frameworks
 	"github.com/djthorpe/gopi"
@@ -195,9 +194,7 @@ func (this *component) GetEmptyBufferOnPort(p hw.MMALPort, blocking bool) (hw.MM
 				return nil, nil
 			} else {
 				this.log.Debug2("GetEmptyBufferOnPort: Waiting for empty buffer to become available")
-				time.Sleep(time.Second)
-				//port_.Add(1)
-				//port_.Wait()
+				<- port_.lock
 			}
 		}
 	}
@@ -221,9 +218,7 @@ func (this *component) GetFullBufferOnPort(p hw.MMALPort, blocking bool) (hw.MMA
 				return nil, nil
 			} else {
 				this.log.Debug2("GetFullBufferOnPort: Waiting for full buffer to become available")
-				time.Sleep(time.Second)
-				//port_.Add(1)
-				//port_.Wait()
+				<- port_.lock
 			}
 		}
 	}

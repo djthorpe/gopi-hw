@@ -14,7 +14,6 @@ package mmal
 import (
 	"fmt"
 	"strings"
-	"sync"
 
 	// Frameworks
 	"github.com/djthorpe/gopi"
@@ -52,8 +51,7 @@ type port struct {
 	handle rpi.MMAL_PortHandle
 	pool   rpi.MMAL_Pool
 	queue  rpi.MMAL_Queue
-
-	sync.WaitGroup
+	lock chan struct{}
 }
 
 type format struct {
@@ -281,6 +279,7 @@ func (this *mmal) NewPort(c *component, handle rpi.MMAL_PortHandle) *port {
 		pool:   pool,
 		queue:  queue,
 		log:    this.log,
+		lock: make(chan struct{},10),
 	}
 
 	// Register the port callback
@@ -288,26 +287,24 @@ func (this *mmal) NewPort(c *component, handle rpi.MMAL_PortHandle) *port {
 		if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_CONTROL {
 			// Callback from a control port. Error events will be received there
 			if rpi.MMALBufferCommand(buffer) != 0 {
-				fmt.Printf("CONTROL EVENT: %v: buffer=%v\n", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
+				// TODO: If error then propogate it
+				p.log.Debug("CONTROL EVENT: %v: buffer=%v", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
 			}
+			rpi.MMALBufferRelease(buffer)
 		} else if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_INPUT {
 			// Callback from an input port. Buffer is released
-			fmt.Printf("INPUT EVENT: %v: buffer=%v\n", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
+			p.log.Debug("INPUT EVENT: %v: buffer=%v", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
+			p.lock <- struct{}{}
+			rpi.MMALBufferRelease(buffer)
 		} else if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_OUTPUT {
 			// Callback from an output port. Buffer is queued for the next component
 			rpi.MMALQueuePut(p.queue, buffer)
-			fmt.Printf("OUTPUT EVENT: %v: buffer=%v => queue\n", rpi.MMALPortName(port), rpi.MMALBufferString(buffer), rpi.MMALQueueString(p.queue))
-			// Don't release the buffer, that is done later
-			buffer = nil
+			p.log.Debug("OUTPUT EVENT: %v: buffer=%v => %v", rpi.MMALPortName(port), rpi.MMALBufferString(buffer),rpi.MMALQueueString(queue))
+			p.lock <- struct{}{}
 		} else {
-			fmt.Printf("PORT CALLBACK: %v: buffer=%v\n", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
-		}
-		// Release the buffer
-		if buffer != nil {
+			p.log.Debug("PORT CALLBACK: %v: buffer=%v", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
 			rpi.MMALBufferRelease(buffer)
 		}
-		// Unlock getting buffers
-		//p.Unlock()
 	})
 
 	// Return port

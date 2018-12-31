@@ -34,6 +34,9 @@ func (this *port) Close() error {
 		return gopi.ErrOutOfOrder
 	}
 
+	// Close the channel
+	close(this.lock)
+
 	// Disable port
 	if rpi.MMALPortIsEnabled(this.handle) {
 		if err_ := rpi.MMALPortDisable(this.handle); err_ != nil {
@@ -115,20 +118,13 @@ func (this *port) SetEnabled(value bool) error {
 			return err
 		} else if rpi.MMALPortType(this.handle) == rpi.MMAL_PORT_TYPE_OUTPUT {
 			// Flush output port
-			fmt.Println("TODO: Flush output port on disable")
-			/*
-						MMAL_POOL_T *pool = wrapper->output_pool[port->index];
-				    	  MMAL_QUEUE_T *queue = wrapper->output_queue[port->index];
-					      MMAL_BUFFER_HEADER_T *buffer;
-
-				      while ((buffer = mmal_queue_get(queue)) != NULL)
-				         mmal_buffer_header_release(buffer);
-
-				      if ( !vcos_verify(mmal_queue_length(pool->queue) == pool->headers_num) )
-				      {
-				         LOG_ERROR("coul dnot release all buffers");
-					  }
-			*/
+			for {
+				if buffer := rpi.MMALQueueGet(this.queue); buffer == nil {
+					break
+				} else {
+					rpi.MMALBufferRelease(buffer)
+				}
+			}
 		}
 	}
 
