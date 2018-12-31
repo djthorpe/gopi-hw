@@ -94,7 +94,7 @@ type MMALComponent interface {
 	Inputs() []MMALPort
 	Outputs() []MMALPort
 
-	// Get buffer from port and optionally block
+	// Get buffer from port/connection and optionally block
 	GetEmptyBufferOnPort(MMALPort, bool) (MMALBuffer, error)
 	GetFullBufferOnPort(MMALPort, bool) (MMALBuffer, error)
 }
@@ -113,10 +113,11 @@ type MMALPort interface {
 	Enabled() bool
 	SetEnabled(value bool) error
 
-	// Connect and Disconnect & Flush
+	// Connect, disconnect, flush and return any errors
 	Connect(other MMALPort) error
 	Disconnect() error
 	Flush() error
+	Error() error
 
 	// Format
 	Format() MMALFormat
@@ -126,7 +127,7 @@ type MMALPort interface {
 	SubpictureFormat() MMALSubpictureFormat
 	CommitFormatChange() error
 
-	// Send Buffer to input port
+	// Send Buffer to port
 	Send(MMALBuffer) error
 
 	// Port Parameters

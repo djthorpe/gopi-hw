@@ -33,16 +33,24 @@ func RendererInputPort(mmal hw.MMAL) (hw.MMALPort, error) {
 		return nil, err
 	} else if port := renderer.Inputs()[0]; port == nil {
 		return nil, gopi.ErrBadParameter
-	} else if display_region, err := port.DisplayRegion(); err != nil {
-		return nil, err
 	} else {
-		display_region.SetFullScreen(true)
-		display_region.SetTransform(hw.MMAL_DISPLAY_TRANSFORM_ROT180_MIRROR)
-		display_region.SetMode(hw.MMAL_DISPLAY_MODE_FILL)
-		if err := port.SetDisplayRegion(display_region); err != nil {
+		format := port.VideoFormat()
+		format.SetWidthHeight(640, 480)
+		format.SetCrop(hw.MMALRect{0, 0, 640, 480})
+		if err := port.CommitFormatChange(); err != nil {
+			return nil, err
+		}
+		if display_region, err := port.DisplayRegion(); err != nil {
 			return nil, err
 		} else {
-			return port, nil
+			display_region.SetFullScreen(true)
+			display_region.SetTransform(hw.MMAL_DISPLAY_TRANSFORM_ROT180_MIRROR)
+			display_region.SetMode(hw.MMAL_DISPLAY_MODE_FILL)
+			if err := port.SetDisplayRegion(display_region); err != nil {
+				return nil, err
+			} else {
+				return port, nil
+			}
 		}
 	}
 }
@@ -52,21 +60,8 @@ func CameraOutputPort(mmal hw.MMAL) (hw.MMALPort, error) {
 		return nil, err
 	} else if port := camera.Outputs()[0]; port == nil {
 		return nil, gopi.ErrBadParameter
-	} else if annotation, err := camera.Control().Annotation(); err != nil {
-		return nil, err
 	} else {
-		// Set camera framesize
-		port.VideoFormat().SetWidthHeight(1920, 1080)
-		if err := port.CommitFormatChange(); err != nil {
-			return nil, err
-		}
-
-		annotation.SetText("Hello, world")
-		annotation.SetTextSize(24)
-		annotation.SetTextOffset(100, 100)
-		if err := camera.Control().SetAnnotation(annotation); err != nil {
-			return nil, err
-		}
+		// TODO: Set camera parameters and return
 		return port, nil
 	}
 }

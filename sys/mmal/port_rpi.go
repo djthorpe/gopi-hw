@@ -73,6 +73,9 @@ func (this *port) String() string {
 	} else {
 		parts := ""
 		parts += fmt.Sprintf("name='%v' type=%v enabled=%v ", this.Name(), rpi.MMALPortType(this.handle), this.Enabled())
+		if this.err != nil {
+			parts += fmt.Sprintf("error='%v' ", this.err)
+		}
 		if cap := rpi.MMALPortCapabilities(this.handle); cap != 0 {
 			parts += fmt.Sprintf("capabilities=%v ", cap)
 		}
@@ -90,6 +93,10 @@ func (this *port) Name() string {
 
 func (this *port) Enabled() bool {
 	return rpi.MMALPortIsEnabled(this.handle)
+}
+
+func (this *port) Error() error {
+	return this.err
 }
 
 func (this *port) SetEnabled(value bool) error {
