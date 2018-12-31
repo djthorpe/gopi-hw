@@ -53,6 +53,7 @@ type (
 )
 
 type MMAL_PortCallback func(port MMAL_PortHandle, buffer MMAL_Buffer)
+type MMAL_PoolCallback func(pool MMAL_Pool, buffer MMAL_Buffer, userdata uintptr) bool
 
 ////////////////////////////////////////////////////////////////////////////////
 // PRIVATE METHODS - OTHER

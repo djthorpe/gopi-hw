@@ -49,9 +49,7 @@ func (this *port) Close() error {
 
 	// Destroy pool and queue
 	if this.pool != nil {
-		if err_ := rpi.MMALPortPoolDestroy(this.handle, this.pool); err_ != nil {
-			err.Add(err_)
-		}
+		rpi.MMALPortPoolDestroy(this.handle, this.pool)
 		this.pool = nil
 	}
 	if this.queue != nil {

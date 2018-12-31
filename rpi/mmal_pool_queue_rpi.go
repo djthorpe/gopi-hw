@@ -20,7 +20,7 @@ package rpi
 #include <interface/mmal/util/mmal_util.h>
 
 // Callback Functions
-MMAL_BOOL_T mmal_buffer_release_callback(MMAL_POOL_T* pool, MMAL_BUFFER_HEADER_T* buffer,void* userdata);
+MMAL_BOOL_T mmal_pool_callback(MMAL_POOL_T* pool, MMAL_BUFFER_HEADER_T* buffer,void* userdata);
 */
 import "C"
 import (
@@ -30,24 +30,40 @@ import (
 )
 
 ////////////////////////////////////////////////////////////////////////////////
+// CALLBACK REGISTRATION
+
+var (
+	pool_callback = make(map[*C.MMAL_POOL_T]MMAL_PoolCallback, 0)
+)
+
+////////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS - POOLS
 
-func MMALPortPoolCreate(handle MMAL_PortHandle, num, payload_size uint32) (MMAL_Pool, error) {
+func MMALPortPoolCreate(handle MMAL_PortHandle, num, payload_size uint32, callback MMAL_PoolCallback, userdata uintptr) (MMAL_Pool, error) {
 	if pool := C.mmal_port_pool_create(handle, C.uint32_t(num), C.uint32_t(payload_size)); pool == nil {
 		return nil, MMAL_EINVAL
 	} else {
-		C.mmal_pool_callback_set(pool, C.MMAL_POOL_BH_CB_T(C.mmal_buffer_release_callback), nil)
+		C.mmal_pool_callback_set(pool, C.MMAL_POOL_BH_CB_T(C.mmal_pool_callback), unsafe.Pointer(userdata))
+		if callback != nil {
+			pool_callback[pool] = callback
+		}
 		return pool, nil
 	}
 }
 
-func MMALPortPoolDestroy(handle MMAL_PortHandle, pool MMAL_Pool) error {
+func MMALPortPoolDestroy(handle MMAL_PortHandle, pool MMAL_Pool) {
+	if _, exists := pool_callback[pool]; exists {
+		delete(pool_callback, pool)
+	}
 	C.mmal_port_pool_destroy(handle, pool)
-	return nil
 }
 
 func MMALPoolGetBuffer(pool MMAL_Pool) MMAL_Buffer {
-	return MMAL_Buffer(C.mmal_queue_get(pool.queue))
+	return MMALQueueGet(pool.queue)
+}
+
+func MMALPoolPutBuffer(pool MMAL_Pool, buffer MMAL_Buffer) {
+	MMALQueuePut(pool.queue, buffer)
 }
 
 func MMALPoolResize(handle MMAL_Pool, num, payload_size uint32) error {
@@ -110,10 +126,13 @@ func mmal_pool_buffer_array(pool MMAL_Pool) []MMAL_Buffer {
 	return buffers
 }
 
-//export mmal_buffer_release_callback
-func mmal_buffer_release_callback(pool *C.MMAL_POOL_T, buffer *C.MMAL_BUFFER_HEADER_T, userdata unsafe.Pointer) C.MMAL_BOOL_T {
-	// Callback from the pool - empty buffer is available
-	MMALQueuePut(pool.queue, buffer)
-	//fmt.Printf("TODO: mmal_buffer_release_callback pool=%v buffer=%v userdata=%v\n", MMALPoolString(pool), MMALBufferString(buffer), userdata)
-	return MMAL_BOOL_FALSE
+//export mmal_pool_callback
+func mmal_pool_callback(pool *C.MMAL_POOL_T, buffer *C.MMAL_BUFFER_HEADER_T, userdata unsafe.Pointer) C.MMAL_BOOL_T {
+	if cb, exists := pool_callback[pool]; exists {
+		return mmal_to_bool(cb(pool, buffer, uintptr(userdata)))
+	} else {
+		// Empty buffer is available - queue it
+		MMALQueuePut(pool.queue, buffer)
+		return MMAL_BOOL_FALSE
+	}
 }
