@@ -12,6 +12,7 @@
 package mmal
 
 import (
+	"encoding/binary"
 	"fmt"
 	"strings"
 
@@ -37,21 +38,26 @@ type mmal struct {
 }
 
 type component struct {
-	log     gopi.Logger
-	handle  rpi.MMAL_ComponentHandle
-	control *port
-	input   []*port
-	output  []*port
-	clock   []*port
+	log      gopi.Logger
+	handle   rpi.MMAL_ComponentHandle
+	control  *port
+	input    []*port
+	output   []*port
+	clock    []*port
+	port_map map[rpi.MMAL_PortHandle]uint
 }
 
 type port struct {
 	log    gopi.Logger
 	handle rpi.MMAL_PortHandle
 	pool   rpi.MMAL_Pool
+	queue  rpi.MMAL_Queue
+	lock   chan struct{}
+	err    error
 }
 
 type format struct {
+	log    gopi.Logger
 	handle rpi.MMAL_StreamFormat
 }
 
@@ -59,6 +65,11 @@ type connection struct {
 	log           gopi.Logger
 	handle        rpi.MMAL_PortConnection
 	input, output hw.MMALPort
+}
+
+type buffer struct {
+	log    gopi.Logger
+	handle rpi.MMAL_Buffer
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +82,6 @@ func (config MMAL) Open(log gopi.Logger) (gopi.Driver, error) {
 	this.hardware = config.Hardware
 	this.components = make(map[string]*component, 0)
 	this.connections = make([]*connection, 0)
-
 	return this, nil
 }
 
@@ -131,35 +141,41 @@ func (this *mmal) ComponentWithName(name string) (hw.MMALComponent, error) {
 			log:    this.log,
 		}
 		// Set control port
-		c.control = this.NewPort(rpi.MMALComponentControlPort(handle))
+		c.control = this.NewPort(c, rpi.MMALComponentControlPort(handle))
 		// Input ports
 		c.input = make([]*port, rpi.MMALComponentInputPortNum(handle))
 		for i := range c.input {
-			c.input[i] = this.NewPort(rpi.MMALComponentInputPortAtIndex(handle, uint(i)))
+			c.input[i] = this.NewPort(c, rpi.MMALComponentInputPortAtIndex(handle, uint(i)))
 		}
 		// Output ports
 		c.output = make([]*port, rpi.MMALComponentOutputPortNum(handle))
 		for i := range c.output {
-			c.output[i] = this.NewPort(rpi.MMALComponentOutputPortAtIndex(handle, uint(i)))
+			c.output[i] = this.NewPort(c, rpi.MMALComponentOutputPortAtIndex(handle, uint(i)))
 		}
 		// Clock ports
 		c.clock = make([]*port, rpi.MMALComponentClockPortNum(handle))
 		for i := range c.clock {
-			c.clock[i] = this.NewPort(rpi.MMALComponentClockPortAtIndex(handle, uint(i)))
+			c.clock[i] = this.NewPort(c, rpi.MMALComponentClockPortAtIndex(handle, uint(i)))
 		}
 
-		/*
-			   // Create our pools and queues
-			   for i, input := range c.input {
-				  input_pool[i] = mmal_port_pool_create(wrapper->input[i], 0, 0);
-				  if err // ...
-				  mmal_pool_callback_set(wrapper->input_pool[i], mmal_wrapper_bh_release_cb, (void *)wrapper);
-
-			  for i, output := range c.output {
-				output_pool[i] = mmal_port_pool_create(wrapper->output[i], 0, 0);
-				if err // ...
-				mmal_pool_callback_set(wrapper->output_pool[i], mmal_wrapper_bh_release_cb, (void *)wrapper);
-		*/
+		// Map port handles to port index
+		if port_num := rpi.MMALComponentPortNum(handle); port_num == 0 {
+			// There should be at least one port
+			return nil, gopi.ErrAppError
+		} else {
+			c.port_map = make(map[rpi.MMAL_PortHandle]uint, int(port_num))
+			for i := uint(0); i < port_num; i++ {
+				if port_handle := rpi.MMALComponentPortAtIndex(handle, i); port_handle == nil {
+					// Port handle should not be nil
+					return nil, gopi.ErrAppError
+				} else if _, exists := c.port_map[port_handle]; exists {
+					// Each port should only exist once
+					return nil, gopi.ErrAppError
+				} else {
+					c.port_map[port_handle] = rpi.MMALPortIndex(port_handle)
+				}
+			}
+		}
 
 		// Enable control port
 		if err := rpi.MMALPortEnable(rpi.MMALComponentControlPort(handle)); err != nil {
@@ -170,6 +186,42 @@ func (this *mmal) ComponentWithName(name string) (hw.MMALComponent, error) {
 		this.components[name] = c
 		return c, nil
 	}
+}
+
+func (this *mmal) CameraComponent() (hw.MMALCameraComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_CAMERA)
+}
+
+func (this *mmal) CameraInfoComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_CAMERA_INFO)
+}
+
+func (this *mmal) VideoDecoderComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_VIDEO_DECODER)
+}
+
+func (this *mmal) VideoEncoderComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_VIDEO_ENCODER)
+}
+
+func (this *mmal) VideoRendererComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_VIDEO_RENDERER)
+}
+
+func (this *mmal) ImageEncoderComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_IMAGE_ENCODER)
+}
+
+func (this *mmal) ImageDecoderComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_IMAGE_DECODER)
+}
+
+func (this *mmal) ReaderComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_CONTAINER_READER)
+}
+
+func (this *mmal) WriterComponent() (hw.MMALComponent, error) {
+	return this.ComponentWithName(rpi.MMAL_COMPONENT_DEFAULT_CONTAINER_WRITER)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -187,7 +239,7 @@ func (this *mmal) Connect(input, output hw.MMALPort, flags hw.MMALPortConnection
 	} else if err := rpi.MMALPortConnectionCreate(&conn_, input_.handle, output_.handle, flags); err != nil {
 		return nil, err
 	} else {
-		// Append connection
+		// Make a connection object
 		conn := &connection{
 			handle: conn_,
 			log:    this.log,
@@ -207,23 +259,75 @@ func (this *mmal) Disconnect(conn hw.MMALPortConnection) error {
 ////////////////////////////////////////////////////////////////////////////////
 // PRIVATE METHODS
 
-func (this *mmal) NewPort(handle rpi.MMAL_PortHandle) *port {
+func (this *mmal) NewPort(c *component, handle rpi.MMAL_PortHandle) *port {
 	var pool rpi.MMAL_Pool
+	var queue rpi.MMAL_Queue
 	var err error
 
-	// Create the pool/queue if it's an input or output port
+	p := &port{
+		handle: handle,
+		log:    this.log,
+		lock:   make(chan struct{}, 3),
+		err:    nil,
+	}
+
+	// Pool Callback function when there is an empty buffer available to queue
+	callback := func(pool_ rpi.MMAL_Pool, buffer rpi.MMAL_Buffer, _ uintptr) bool {
+		rpi.MMALPoolPutBuffer(pool_, buffer)
+		p.log.Debug("POOL EVENT: %v: buffer=%v", rpi.MMALPortName(p.handle), rpi.MMALBufferString(buffer))
+		p.lock <- struct{}{}
+		return false // Should return true if no more processing?
+	}
+
+	// Create the pool & queue if it's an input or output port
 	if rpi.MMALPortType(handle) == rpi.MMAL_PORT_TYPE_INPUT || rpi.MMALPortType(handle) == rpi.MMAL_PORT_TYPE_OUTPUT {
-		pool, err = rpi.MMALPortPoolCreate(handle, 0, 0)
-		if err != nil {
+		if pool, err = rpi.MMALPortPoolCreate(handle, 0, 0, callback, 0); err != nil {
 			this.log.Error("<sys.hw.mmal>NewPort: %v", err)
 			return nil
+		} else if queue = rpi.MMALQueueCreate(); queue == nil {
+			this.log.Error("<sys.hw.mmal>NewPort: queue == nil")
+			rpi.MMALPortPoolDestroy(handle, pool)
+			return nil
+		} else {
+			p.pool = pool
+			p.queue = queue
 		}
 	}
 
+	// Register the port callback
+	rpi.MMALPortRegisterCallback(handle, func(port rpi.MMAL_PortHandle, buffer rpi.MMAL_Buffer) {
+		if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_CONTROL {
+			// Callback from a control port. Error events will be received there
+			if rpi.MMALBufferCommand(buffer) != 0 {
+				// If error then propogate it
+				if rpi.MMALBufferCommand(buffer) == hw.MMAL_EVENT_ERROR {
+					if rpi.MMALBufferLength(buffer) >= 4 {
+						p.err = rpi.MMAL_Status(binary.LittleEndian.Uint32(rpi.MMALBufferData(buffer)))
+					} else {
+						p.err = gopi.ErrAppError
+					}
+					p.log.Warn("%v: %v", rpi.MMALPortName(port), p.err)
+				} else {
+					p.log.Debug("CONTROL EVENT: %v: buffer=%v", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
+				}
+			}
+			p.lock <- struct{}{}
+			rpi.MMALBufferRelease(buffer)
+		} else if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_INPUT {
+			// Callback from an input port. Buffer is released
+			p.log.Debug("INPUT EVENT: %v: buffer=%v", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
+			rpi.MMALBufferRelease(buffer)
+		} else if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_OUTPUT {
+			// Callback from an output port. Buffer is queued for the next component
+			rpi.MMALQueuePut(p.queue, buffer)
+			p.log.Debug("OUTPUT EVENT: %v: buffer=%v => %v", rpi.MMALPortName(port), rpi.MMALBufferString(buffer), rpi.MMALQueueString(queue))
+			p.lock <- struct{}{}
+		} else {
+			p.log.Warn("UNHANDLED PORT CALLBACK: %v: buffer=%v", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
+			rpi.MMALBufferRelease(buffer)
+		}
+	})
+
 	// Return port
-	return &port{
-		handle: handle,
-		pool:   pool,
-		log:    this.log,
-	}
+	return p
 }

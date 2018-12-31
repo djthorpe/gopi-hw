@@ -75,19 +75,3 @@ func (this *connection) SetEnabled(value bool) error {
 func (this *connection) String() string {
 	return fmt.Sprintf("<sys.hw.mmal.connection>{ input='%v' output='%v' }", this.input, this.output)
 }
-
-/*
-type MMALPortConnection interface {
-	// Input and Output ports
-	Input() hw.MMALPort
-	Output() MMALPort
-
-	// Enable and disable
-	Enabled() bool
-	SetEnabled(value bool) error
-
-	// Acquire and release
-	Acquire() error
-	Release() error
-}
-*/

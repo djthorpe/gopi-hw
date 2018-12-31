@@ -26,14 +26,23 @@ import (
 
 /*
     #cgo CFLAGS: -I/opt/vc/include -I/opt/vc/include/interface/vmcs_host
-    #cgo LDFLAGS: -L/opt/vc/lib -lbcm_host
+    #cgo LDFLAGS: -L/opt/vc/lib -lbcm_host -lvcos
 	#include "vc_vchi_gencmd.h"
+	#include "interface/vcos/vcos_types.h"
     #include "bcm_host.h"
 	int vc_gencmd_wrap(char* response,int maxlen,const char* command) {
 		return vc_gencmd(response,maxlen,command);
 	}
 */
 import "C"
+
+////////////////////////////////////////////////////////////////////////////////
+// TYPES
+
+type (
+	VCSemaphore (*C.VCOS_SEMAPHORE_T)
+	VCStatus    uint
+)
 
 ////////////////////////////////////////////////////////////////////////////////
 // CONSTANTS
@@ -54,6 +63,20 @@ const (
 	GENCMD_MEASURE_VOLTS     = "measure_volts core sdram_c sdram_i sdram_p"
 	GENCMD_CODEC_ENABLED     = "codec_enabled H264 MPG2 WVC1 MPG4 MJPG WMV9 VP8"
 	GENCMD_MEMORY            = "get_mem arm gpu"
+)
+
+const (
+	VCOS_SUCCESS VCStatus = iota
+	VCOS_EAGAIN
+	VCOS_ENOENT
+	VCOS_ENOSPC
+	VCOS_EINVAL
+	VCOS_EACCESS
+	VCOS_ENOMEM
+	VCOS_ENOSYS
+	VCOS_EEXIST
+	VCOS_ENXIO
+	VCOS_EINTR
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -152,7 +175,7 @@ func VCGetCoreTemperatureCelcius() (float64, error) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// BCMHOST & VIDEOCORE METHODS
+// BCMHOST METHODS
 
 func BCMHostInit() error {
 	C.bcm_host_init()
@@ -176,6 +199,9 @@ func BCMHostGetSDRAMAddress() uint32 {
 	return uint32(C.bcm_host_get_sdram_address())
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// VC METHODS
+
 func VCGencmdInit() (int, error) {
 	service := int(C.vc_gencmd_init())
 	if service < 0 {
@@ -187,4 +213,75 @@ func VCGencmdInit() (int, error) {
 func VCGencmdTerminate() error {
 	C.vc_gencmd_stop()
 	return nil
+}
+
+func VCAlignUp(p uintptr, n uintptr) uintptr {
+	return VCAlignDown((p)+(n)-1, n)
+}
+
+func VCAlignDown(p uintptr, n uintptr) uintptr {
+	return p & ^(n - 1)
+}
+
+func VCSemaphoreCreate(name string, count uint) (VCSemaphore, error) {
+	var sem (C.VCOS_SEMAPHORE_T)
+	cstr := C.CString(name)
+	defer C.free(unsafe.Pointer(cstr))
+	if status := VCStatus(C.vcos_semaphore_create(&sem, cstr, C.VCOS_UNSIGNED(count))); status != VCOS_SUCCESS {
+		return nil, status
+	} else {
+		return VCSemaphore(&sem), nil
+	}
+}
+
+func VCSemaphoreDelete(handle VCSemaphore) {
+	C.vcos_semaphore_delete(handle)
+}
+
+func VCSemaphorePost(handle VCSemaphore) error {
+	if status := VCStatus(C.vcos_semaphore_post(handle)); status != VCOS_SUCCESS {
+		return status
+	} else {
+		return nil
+	}
+}
+
+func VCSemaphoreWait(handle VCSemaphore) error {
+	if status := VCStatus(C.vcos_semaphore_wait(handle)); status != VCOS_SUCCESS {
+		return status
+	} else {
+		return nil
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// VCStatus error implementation
+
+func (status VCStatus) Error() string {
+	switch status {
+	case VCOS_SUCCESS:
+		return "VCOS_SUCCESS"
+	case VCOS_EAGAIN:
+		return "VCOS_EAGAIN"
+	case VCOS_ENOENT:
+		return "VCOS_ENOENT"
+	case VCOS_ENOSPC:
+		return "VCOS_ENOSPC"
+	case VCOS_EINVAL:
+		return "VCOS_EINVAL"
+	case VCOS_EACCESS:
+		return "VCOS_EACCESS"
+	case VCOS_ENOMEM:
+		return "VCOS_ENOMEM"
+	case VCOS_ENOSYS:
+		return "VCOS_ENOSYS"
+	case VCOS_EEXIST:
+		return "VCOS_EEXIST"
+	case VCOS_ENXIO:
+		return "VCOS_ENXIO"
+	case VCOS_EINTR:
+		return "VCOS_EINTR"
+	default:
+		return "[?? Invalid VCStatus value]"
+	}
 }

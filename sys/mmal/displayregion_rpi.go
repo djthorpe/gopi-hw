@@ -102,20 +102,18 @@ func (this *displayregion) SetCopyProtect(value bool) {
 	rpi.MMALDisplayRegionSetCopyProtect(this.handle, value)
 }
 
-func (this *displayregion) DestRect() (int32, int32, uint32, uint32) {
-	rect := rpi.MMALDisplayRegionGetDestRect(this.handle)
-	return int32(rect.X), int32(rect.Y), uint32(rect.W), uint32(rect.H)
+func (this *displayregion) DestRect() hw.MMALRect {
+	return rpi.MMALDisplayRegionGetDestRect(this.handle)
 }
 
-func (this *displayregion) SrcRect() (int32, int32, uint32, uint32) {
-	rect := rpi.MMALDisplayRegionGetSrcRect(this.handle)
-	return int32(rect.X), int32(rect.Y), uint32(rect.W), uint32(rect.H)
+func (this *displayregion) SrcRect() hw.MMALRect {
+	return rpi.MMALDisplayRegionGetSrcRect(this.handle)
 }
 
-func (this *displayregion) SetDestRect(x, y int32, width, height uint32) {
-	rpi.MMALDisplayRegionSetDestRect(this.handle, rpi.MMAL_Rect{x, y, width, height})
+func (this *displayregion) SetDestRect(value hw.MMALRect) {
+	rpi.MMALDisplayRegionSetDestRect(this.handle, value)
 }
 
-func (this *displayregion) SetSrcRect(x, y int32, width, height uint32) {
-	rpi.MMALDisplayRegionSetSrcRect(this.handle, rpi.MMAL_Rect{x, y, width, height})
+func (this *displayregion) SetSrcRect(value hw.MMALRect) {
+	rpi.MMALDisplayRegionSetSrcRect(this.handle, value)
 }
