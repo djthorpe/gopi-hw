@@ -4,8 +4,12 @@ GOFLAGS=-tags "rpi"
 GOINSTALL=$(GOCMD) install $(GOFLAGS)
 GOTEST=$(GOCMD) test $(GOFLAGS) 
 GOCLEAN=$(GOCMD) clean
-    
-all: test install
+
+# Freetype parameters
+FT_CFLAGS=-I/usr/include/freetype2
+FT_LDFLAGS=-lfreetype
+
+all: test_rpi test_freetype install
 
 install:
 	$(GOINSTALL) ./cmd/gpio_ctrl
@@ -21,10 +25,7 @@ test_rpi:
 	$(GOTEST) -v ./rpi
 
 test_freetype:
-	$(GOTEST) -v ./freetype
-
-test: 
-	$(GOTEST) -v ./...
+	CGO_CFLAGS="${FT_CFLAGS}" CGO_LDFLAGS="${FT_LDFLAGS}" $(GOTEST) -v ./freetype
 
 clean: 
 	$(GOCLEAN)

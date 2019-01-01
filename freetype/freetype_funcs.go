@@ -8,17 +8,22 @@
 
 package freetype
 
+import (
+	"fmt"
+	"unsafe"
+
+	// Frameworks
+	"github.com/djthorpe/gopi"
+)
+
 ////////////////////////////////////////////////////////////////////////////////
 // CGO
 
 /*
-  #cgo CFLAGS:   -I/usr/include/freetype2
-  #cgo LDFLAGS:  -lfreetype
   #include <ft2build.h>
   #include FT_FREETYPE_H
 */
 import "C"
-import "unsafe"
 
 ////////////////////////////////////////////////////////////////////////////////
 // LIBRARY FUNCTIONS
@@ -74,4 +79,29 @@ func FT_SelectCharmap(handle FT_Face, encoding FT_Encoding) error {
 	} else {
 		return nil
 	}
+}
+
+func FT_FaceFamily(handle FT_Face) string {
+	return C.GoString(handle.family_name)
+}
+
+func FT_FaceStyle(handle FT_Face) string {
+	fmt.Println(handle.style_name)
+	return C.GoString(handle.style_name)
+}
+
+func FT_FaceIndex(handle FT_Face) uint {
+	return uint(handle.face_index)
+}
+
+func FT_FaceNumFaces(handle FT_Face) uint {
+	return uint(handle.num_faces)
+}
+
+func FT_FaceNumGlyphs(handle FT_Face) uint {
+	return uint(handle.num_glyphs)
+}
+
+func FT_FaceStyleFlags(handle FT_Face) gopi.FontFlags {
+	return gopi.FontFlags(handle.style_flags)
 }

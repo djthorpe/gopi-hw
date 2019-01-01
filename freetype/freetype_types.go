@@ -12,8 +12,6 @@ package freetype
 // CGO
 
 /*
-  #cgo CFLAGS:   -I/usr/include/freetype2
-  #cgo LDFLAGS:  -lfreetype
   #include <ft2build.h>
   #include FT_FREETYPE_H
 */
