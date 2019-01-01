@@ -84,10 +84,6 @@ type MMALComponent interface {
 	Enabled() bool
 	SetEnabled(value bool) error
 
-	// Acquire and release
-	Acquire() error
-	Release() error
-
 	// Return ports
 	Control() MMALPort
 	Clocks() []MMALPort
@@ -127,8 +123,9 @@ type MMALPort interface {
 	SubpictureFormat() MMALSubpictureFormat
 	CommitFormatChange() error
 
-	// Send Buffer to port
+	// Send buffer to port, release buffer
 	Send(MMALBuffer) error
+	Release(MMALBuffer) error
 
 	// Port Parameters
 	MMALCommonParameters
@@ -137,10 +134,6 @@ type MMALPort interface {
 }
 
 type MMALBuffer interface {
-	// Acquire and release
-	Acquire() error
-	Release() error
-
 	// Fill buffer
 	Fill(io.Reader) (uint32, error)
 

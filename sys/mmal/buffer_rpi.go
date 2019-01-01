@@ -61,3 +61,8 @@ func (this *buffer) Reset() error {
 	this.log.Debug2("<sys.hw.mmal.buffer>Reset{ buffer=%v }", rpi.MMALBufferString(this.handle))
 	return rpi.MMALBufferReset(this.handle)
 }
+
+// Stringify buffer
+func (this *buffer) String() string {
+	return rpi.MMALBufferString(this.handle)
+}

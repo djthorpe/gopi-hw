@@ -251,6 +251,16 @@ func (this *port) Send(b hw.MMALBuffer) error {
 	}
 }
 
+func (this *port) Release(b hw.MMALBuffer) error {
+	if buffer_, ok := b.(*buffer); ok == false {
+		return gopi.ErrBadParameter
+	} else {
+		this.log.Debug2("<sys.hw.mmal.port>Release{ name='%v' buffer=%v }", this.Name(), rpi.MMALBufferString(buffer_.handle))
+		rpi.MMALPoolReleaseBuffer(buffer_.handle)
+		return nil
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // PRIVATE METHODS
 

@@ -57,15 +57,15 @@ func ReaderOutputPort(mmal hw.MMAL, uri string) (hw.MMALPort, error) {
 	}
 }
 
-func DecoderInputOutputPorts(mmal hw.MMAL) (hw.MMALPort, hw.MMALPort, error) {
+func DecoderInputOutputPorts(mmal hw.MMAL) (hw.MMALComponent, hw.MMALPort, hw.MMALPort, error) {
 	if decoder, err := mmal.VideoDecoderComponent(); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	} else if input_port := decoder.Inputs()[0]; input_port == nil {
-		return nil, nil, gopi.ErrBadParameter
+		return nil, nil, nil, gopi.ErrBadParameter
 	} else if output_port := decoder.Outputs()[0]; output_port == nil {
-		return nil, nil, gopi.ErrBadParameter
+		return nil, nil, nil, gopi.ErrBadParameter
 	} else {
-		return input_port, output_port, nil
+		return decoder, input_port, output_port, nil
 	}
 }
 
@@ -80,19 +80,39 @@ func Main(app *gopi.AppInstance, done chan<- struct{}) error {
 		return errors.New("Missing MMAL module")
 	} else if reader_port, err := ReaderOutputPort(mmal, args[0]); err != nil {
 		return err
-	} else if decoder_in_port, decoder_out_port, err := DecoderInputOutputPorts(mmal); err != nil {
+	} else if decoder, decoder_in_port, decoder_out_port, err := DecoderInputOutputPorts(mmal); err != nil {
 		return err
-	} else if renderer_port, err := RendererInputPort(mmal); err != nil {
-		return err
-	} else if c1, err := mmal.Connect(reader_port, decoder_in_port, hw.MMAL_CONNECTION_FLAG_TUNNELLING|hw.MMAL_CONNECTION_FLAG_DIRECT); err != nil {
-		return err
-	} else if c2, err := mmal.Connect(decoder_out_port, renderer_port, hw.MMAL_CONNECTION_FLAG_TUNNELLING|hw.MMAL_CONNECTION_FLAG_DIRECT); err != nil {
-		return err
-	} else if err := c2.SetEnabled(true); err != nil {
+	} else if c1, err := mmal.Connect(reader_port, decoder_in_port, hw.MMAL_CONNECTION_FLAG_TUNNELLING); err != nil {
 		return err
 	} else if err := c1.SetEnabled(true); err != nil {
 		return err
+	} else if err := decoder_out_port.SetEnabled(true); err != nil {
+		return err
 	} else {
+		for {
+			fmt.Println("LOOP")
+
+			// Get an empty buffer on from output pool, block until we get one, then send it
+			// to the port so that it can be used for filling the result of the encode
+			if buffer, err := decoder.GetEmptyBufferOnPort(decoder_out_port, false); err != nil {
+				return err
+			} else if buffer != nil {
+				if err := decoder_out_port.Send(buffer); err != nil {
+					return err
+				}
+			}
+
+			// Get a full buffer on the output port, release when we have used it
+			if buffer, err := decoder.GetFullBufferOnPort(decoder_out_port, false); err != nil {
+				return err
+			} else if buffer != nil {
+				fmt.Println(buffer)
+				if err := decoder_out_port.Release(buffer); err != nil {
+					return err
+				}
+			}
+		}
+
 		// Display video until interrupted
 		fmt.Println("Press CTRL+C to exit")
 		app.WaitForSignal()

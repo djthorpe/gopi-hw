@@ -207,7 +207,7 @@ func TestFormats_001(t *testing.T) {
 				t.Log("  FORMAT VIDEO CROP ", rpi.MMALStreamFormatVideoCrop(format))
 				t.Log("  FORMAT VIDEO FRAME RATE ", rpi.MMALStreamFormatVideoFrameRate(format))
 				t.Log("  FORMAT VIDEO PIXEL ASPECT RATIO ", rpi.MMALStreamFormatVideoPixelAspectRatio(format))
-				t.Log("  FORMAT VIDEO COLOR SPACE ", rpi.MMALStreamFormatColorSpace(format))
+				//t.Log("  FORMAT VIDEO COLOR SPACE ", rpi.MMALStreamFormatColorSpace(format))
 			}
 		}
 		if err := rpi.MMALComponentDestroy(handle); err != nil {

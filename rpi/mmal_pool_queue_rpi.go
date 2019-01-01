@@ -66,6 +66,10 @@ func MMALPoolPutBuffer(pool MMAL_Pool, buffer MMAL_Buffer) {
 	MMALQueuePut(pool.queue, buffer)
 }
 
+func MMALPoolReleaseBuffer(buffer MMAL_Buffer) {
+	MMALBufferRelease(buffer)
+}
+
 func MMALPoolResize(handle MMAL_Pool, num, payload_size uint32) error {
 	if status := MMAL_Status(C.mmal_pool_resize(handle, C.uint32_t(num), C.uint32_t(payload_size))); status == MMAL_SUCCESS {
 		return nil

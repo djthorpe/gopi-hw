@@ -271,12 +271,12 @@ func (this *mmal) NewPort(c *component, handle rpi.MMAL_PortHandle) *port {
 		err:    nil,
 	}
 
-	// Pool Callback function when there is an empty buffer available to queue
+	// Pool Callback function when there is an empty buffer available to queue up
 	callback := func(pool_ rpi.MMAL_Pool, buffer rpi.MMAL_Buffer, _ uintptr) bool {
-		rpi.MMALPoolPutBuffer(pool_, buffer)
 		p.log.Debug("POOL EVENT: %v: buffer=%v", rpi.MMALPortName(p.handle), rpi.MMALBufferString(buffer))
 		p.lock <- struct{}{}
-		return false // Should return true if no more processing?
+		rpi.MMALPoolPutBuffer(pool_, buffer)
+		return false // Should return false so buffer is placed back in the pool
 	}
 
 	// Create the pool & queue if it's an input or output port
@@ -296,7 +296,8 @@ func (this *mmal) NewPort(c *component, handle rpi.MMAL_PortHandle) *port {
 
 	// Register the port callback
 	rpi.MMALPortRegisterCallback(handle, func(port rpi.MMAL_PortHandle, buffer rpi.MMAL_Buffer) {
-		if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_CONTROL {
+		switch rpi.MMALPortType(port) {
+		case rpi.MMAL_PORT_TYPE_CONTROL:
 			// Callback from a control port. Error events will be received there
 			if rpi.MMALBufferCommand(buffer) != 0 {
 				// If error then propogate it
@@ -313,17 +314,18 @@ func (this *mmal) NewPort(c *component, handle rpi.MMAL_PortHandle) *port {
 			}
 			p.lock <- struct{}{}
 			rpi.MMALBufferRelease(buffer)
-		} else if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_INPUT {
+		case rpi.MMAL_PORT_TYPE_INPUT:
 			// Callback from an input port. Buffer is released
 			p.log.Debug("INPUT EVENT: %v: buffer=%v", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
 			rpi.MMALBufferRelease(buffer)
-		} else if rpi.MMALPortType(port) == rpi.MMAL_PORT_TYPE_OUTPUT {
+		case rpi.MMAL_PORT_TYPE_OUTPUT:
 			// Callback from an output port. Buffer is queued for the next component
-			rpi.MMALQueuePut(p.queue, buffer)
 			p.log.Debug("OUTPUT EVENT: %v: buffer=%v => %v", rpi.MMALPortName(port), rpi.MMALBufferString(buffer), rpi.MMALQueueString(queue))
 			p.lock <- struct{}{}
-		} else {
+			rpi.MMALQueuePut(p.queue, buffer)
+		default:
 			p.log.Warn("UNHANDLED PORT CALLBACK: %v: buffer=%v", rpi.MMALPortName(port), rpi.MMALBufferString(buffer))
+			p.lock <- struct{}{}
 			rpi.MMALBufferRelease(buffer)
 		}
 	})
