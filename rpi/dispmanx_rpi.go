@@ -23,9 +23,7 @@ import (
 // CGO
 
 /*
-    #cgo CFLAGS: -I/opt/vc/include -I/opt/vc/include/interface/vmcs_host
-    #cgo LDFLAGS:  -L/opt/vc/lib -lbcm_host
-	#include "vc_dispmanx.h"
+#include <vc_dispmanx.h>
 */
 import "C"
 
