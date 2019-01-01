@@ -153,7 +153,7 @@ func MMALEncodeTest(encoder hw.MMALComponent, format hw.MMALEncodingType, width,
 					return err
 				}
 				eoe = buffer.Flags()&hw.MMAL_BUFFER_FLAG_EOS != 0
-				if err := buffer.Release(); err != nil {
+				if err := port_out.Release(buffer); err != nil {
 					return err
 				}
 			}

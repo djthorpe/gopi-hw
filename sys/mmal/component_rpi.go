@@ -179,7 +179,9 @@ func (this *component) Clocks() []hw.MMALPort {
 
 func (this *component) GetEmptyBufferOnPort(p hw.MMALPort, blocking bool) (hw.MMALBuffer, error) {
 	this.log.Debug2("<sys.hw.mmal.component>GetEmptyBufferOnPort{ name='%v' port=%v blocking=%v }", this.Name(), p, blocking)
-	if port_, ok := p.(*port); ok == false {
+	if p.Enabled() == false {
+		return nil, this.log.Error("Port not enabled: %v", p.Name())
+	} else if port_, ok := p.(*port); ok == false {
 		return nil, gopi.ErrBadParameter
 	} else if _, exists := this.port_map[port_.handle]; exists == false {
 		return nil, fmt.Errorf("Port is invalid: %v", p)
@@ -193,7 +195,7 @@ func (this *component) GetEmptyBufferOnPort(p hw.MMALPort, blocking bool) (hw.MM
 			} else if blocking == false {
 				return nil, nil
 			} else {
-				this.log.Debug2("GetEmptyBufferOnPort: Waiting for empty buffer to become available")
+				this.log.Debug2("GetEmptyBufferOnPort: Blocking: %v", p.Name())
 				<-port_.lock
 			}
 		}
@@ -202,12 +204,14 @@ func (this *component) GetEmptyBufferOnPort(p hw.MMALPort, blocking bool) (hw.MM
 
 func (this *component) GetFullBufferOnPort(p hw.MMALPort, blocking bool) (hw.MMALBuffer, error) {
 	this.log.Debug2("<sys.hw.mmal.component>GetFullBufferOnPort{ name='%v' port=%v blocking=%v }", this.Name(), p, blocking)
-	if port_, ok := p.(*port); ok == false {
+	if p.Enabled() == false {
+		return nil, this.log.Error("Port not enabled: %v", p.Name())
+	} else if port_, ok := p.(*port); ok == false {
 		return nil, gopi.ErrBadParameter
 	} else if _, exists := this.port_map[port_.handle]; exists == false {
 		return nil, fmt.Errorf("Port is invalid: %v", p)
 	} else if queue := port_.queue; queue == nil {
-		return nil, fmt.Errorf("Pool is invalid: %v", p)
+		return nil, fmt.Errorf("Queue is invalid: %v", p)
 	} else {
 		// Get a buffer from the 'full queue'
 		for {
@@ -217,7 +221,7 @@ func (this *component) GetFullBufferOnPort(p hw.MMALPort, blocking bool) (hw.MMA
 			} else if blocking == false {
 				return nil, nil
 			} else {
-				this.log.Debug2("GetFullBufferOnPort: Waiting for full buffer to become available")
+				this.log.Debug2("GetFullBufferOnPort: Blocking: %v", p.Name())
 				<-port_.lock
 			}
 		}

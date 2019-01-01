@@ -17,6 +17,12 @@ install:
 	$(GOINSTALL) ./cmd/pwm_ctrl
 	$(GOINSTALL) ./cmd/spi_ctrl
 
+test_rpi:
+	$(GOTEST) -v ./rpi
+
+test_freetype:
+	$(GOTEST) -v ./freetype
+
 test: 
 	$(GOTEST) -v ./...
 
