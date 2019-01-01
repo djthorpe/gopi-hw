@@ -47,10 +47,10 @@ type (
 )
 
 type DX_DisplayModeInfo struct {
-	Handle      DX_DisplayHandle
 	Size        DX_Size
 	Transform   DX_Transform
 	InputFormat DX_InputFormat
+	extra       C.uint32_t
 }
 
 type DX_Point struct {
@@ -117,6 +117,7 @@ const (
 	DX_DISPLAYID_FORCE_TV
 	DX_DISPLAYID_FORCE_OTHER
 	DX_DISPLAYID_MAX = DX_DISPLAYID_FORCE_OTHER
+	DX_DISPLAYID_MIN = DX_DISPLAYID_MAIN_LCD
 )
 
 const (
@@ -220,7 +221,6 @@ func DX_Stop() {
 }
 
 func DX_DisplayOpen(display DX_DisplayId) (DX_DisplayHandle, error) {
-
 	if handle := DX_DisplayHandle(C.vc_dispmanx_display_open(C.uint32_t(display))); handle != DX_DISPLAY_NONE {
 		return handle, nil
 	} else {
@@ -236,12 +236,12 @@ func DX_DisplayClose(display DX_DisplayHandle) error {
 	}
 }
 
-func DX_DisplayGetInfo(display DX_DisplayHandle) (*DX_DisplayModeInfo, error) {
-	info := &DX_DisplayModeInfo{}
-	if C.vc_dispmanx_display_get_info(C.DISPMANX_DISPLAY_HANDLE_T(display), (*C.DISPMANX_MODEINFO_T)(unsafe.Pointer(info))) == DX_SUCCESS {
+func DX_DisplayGetInfo(display DX_DisplayHandle) (DX_DisplayModeInfo, error) {
+	info := DX_DisplayModeInfo{}
+	if C.vc_dispmanx_display_get_info(C.DISPMANX_DISPLAY_HANDLE_T(display), (*C.DISPMANX_MODEINFO_T)(unsafe.Pointer(&info))) == DX_SUCCESS {
 		return info, nil
 	} else {
-		return nil, gopi.ErrUnexpectedResponse
+		return info, gopi.ErrUnexpectedResponse
 	}
 }
 
@@ -398,7 +398,7 @@ func DX_RectString(r DX_Rect) string {
 ////////////////////////////////////////////////////////////////////////////////
 // STRINGIFY
 
-func (this *DX_DisplayModeInfo) String() string {
+func (this DX_DisplayModeInfo) String() string {
 	return fmt.Sprintf("DX_DisplayModeInfo{ size=%v transform=%v input_format=%v }", this.Size, this.Transform, this.InputFormat)
 }
 
