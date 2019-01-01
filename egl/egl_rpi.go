@@ -1,5 +1,3 @@
-//+build rpi
-
 /*
   Go Language Raspberry Pi Interface
   (c) Copyright David Thorpe 2016-2019
