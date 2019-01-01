@@ -17,7 +17,7 @@ RPI_LDFLAGS=-L/opt/vc/lib -lbcm_host
 EGL_CFLAGS=-I/opt/vc/include -DUSE_VCHIQ_ARM
 EGL_LDFLAGS=-L/opt/vc/lib -lEGL_static -lGLESv2_static -lkhrn_static -lvcos -lvchiq_arm -lbcm_host -lm
 
-all: test_rpi test_freetype install
+all: test_rpi test_egl test_freetype install
 
 install:
 	$(GOINSTALL) ./cmd/gpio_ctrl
@@ -32,6 +32,9 @@ install:
 
 test_rpi:
 	CGO_CFLAGS="${RPI_CFLAGS}" CGO_LDFLAGS="${RPI_LDFLAGS}" $(GOTEST) -v ./rpi
+
+test_egl:
+	CGO_CFLAGS="${RPI_CFLAGS} ${EGL_CFLAGS}" CGO_LDFLAGS="${RPI_LDFLAGS} ${EGL_LDFLAGS}" $(GOTEST) -v ./egl
 
 test_dx:
 	CGO_CFLAGS="${RPI_CFLAGS}" CGO_LDFLAGS="${RPI_LDFLAGS}" $(GOTEST) -v ./rpi/dispmanx_test.go

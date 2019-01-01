@@ -1,17 +1,17 @@
+//+build rpi
+
 /*
   Go Language Raspberry Pi Interface
-  (c) Copyright David Thorpe 2016-2018
+  (c) Copyright David Thorpe 2016-2019
   All Rights Reserved
 
   Documentation http://djthorpe.github.io/gopi/
   For Licensing and Usage information, please see LICENSE.md
 */
 
-package rpi
+package egl
 
-import (
-	"unsafe"
-)
+import "unsafe"
 
 ////////////////////////////////////////////////////////////////////////////////
 // CGO
@@ -21,6 +21,114 @@ import (
 */
 import "C"
 
+////////////////////////////////////////////////////////////////////////////////
+// TYPES
+
+type (
+	EGL_Display C.EGLDisplay
+	EGL_Error   C.EGLint
+)
+
+////////////////////////////////////////////////////////////////////////////////
+// CONSTANTS
+
+const (
+	EGL_FALSE = C.EGLBoolean(0)
+	EGL_TRUE  = C.EGLBoolean(1)
+)
+
+const (
+	// Errors
+	EGL_SUCCESS             EGL_Error = 0x3000
+	EGL_NOT_INITIALIZED               = 0x3001
+	EGL_BAD_ACCESS                    = 0x3002
+	EGL_BAD_ALLOC                     = 0x3003
+	EGL_BAD_ATTRIBUTE                 = 0x3004
+	EGL_BAD_CONFIG                    = 0x3005
+	EGL_BAD_CONTEXT                   = 0x3006
+	EGL_BAD_CURRENT_SURFACE           = 0x3007
+	EGL_BAD_DISPLAY                   = 0x3008
+	EGL_BAD_MATCH                     = 0x3009
+	EGL_BAD_NATIVE_PIXMAP             = 0x300A
+	EGL_BAD_NATIVE_WINDOW             = 0x300B
+	EGL_BAD_PARAMETER                 = 0x300C
+	EGL_BAD_SURFACE                   = 0x300D
+	EGL_CONTEXT_LOST                  = 0x300E // EGL 1.1 - IMG_power_management
+)
+
+////////////////////////////////////////////////////////////////////////////////
+// PUBLIC METHODS
+
+func EGL_GetError() error {
+	if err := EGL_Error(C.eglGetError()); err == EGL_SUCCESS {
+		return nil
+	} else {
+		return err
+	}
+}
+
+func EGL_Initialize(display EGL_Display) (int, int, error) {
+	var major, minor C.EGLint
+	if C.eglInitialize(C.EGLDisplay(display), (*C.EGLint)(unsafe.Pointer(&major)), (*C.EGLint)(unsafe.Pointer(&minor))) != EGL_TRUE {
+		return 0, 0, EGL_GetError()
+	} else {
+		return int(major), int(minor), nil
+	}
+}
+
+func EGL_Terminate(display EGL_Display) error {
+	if C.eglTerminate(C.EGLDisplay(display)) != EGL_TRUE {
+		return EGL_GetError()
+	} else {
+		return nil
+	}
+}
+
+func EGL_GetDisplay(display uint) EGL_Display {
+	return EGL_Display(C.eglGetDisplay(C.EGLNativeDisplayType(uintptr(display))))
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// STRINGIFY
+
+func (e EGL_Error) Error() string {
+	switch e {
+	case EGL_SUCCESS:
+		return "EGL_SUCCESS"
+	case EGL_NOT_INITIALIZED:
+		return "EGL_NOT_INITIALIZED"
+	case EGL_BAD_ACCESS:
+		return "EGL_BAD_ACCESS"
+	case EGL_BAD_ALLOC:
+		return "EGL_BAD_ALLOC"
+	case EGL_BAD_ATTRIBUTE:
+		return "EGL_BAD_ATTRIBUTE"
+	case EGL_BAD_CONFIG:
+		return "EGL_BAD_CONFIG"
+	case EGL_BAD_CONTEXT:
+		return "EGL_BAD_CONTEXT"
+	case EGL_BAD_CURRENT_SURFACE:
+		return "EGL_BAD_CURRENT_SURFACE"
+	case EGL_BAD_DISPLAY:
+		return "EGL_BAD_DISPLAY"
+	case EGL_BAD_MATCH:
+		return "EGL_BAD_MATCH"
+	case EGL_BAD_NATIVE_PIXMAP:
+		return "EGL_BAD_NATIVE_PIXMAP"
+	case EGL_BAD_NATIVE_WINDOW:
+		return "EGL_BAD_NATIVE_WINDOW"
+	case EGL_BAD_PARAMETER:
+		return "EGL_BAD_PARAMETER"
+	case EGL_BAD_SURFACE:
+		return "EGL_BAD_SURFACE"
+	case EGL_CONTEXT_LOST:
+		return "EGL_CONTEXT_LOST"
+	default:
+		return "[?? Unknown EGL_Error value]"
+	}
+}
+
+/*
 ////////////////////////////////////////////////////////////////////////////////
 // TYPES
 
@@ -75,7 +183,7 @@ const (
 	EGL_BAD_NATIVE_WINDOW            = 0x300B
 	EGL_BAD_PARAMETER                = 0x300C
 	EGL_BAD_SURFACE                  = 0x300D
-	EGL_CONTEXT_LOST                 = 0x300E /* EGL 1.1 - IMG_power_management */
+	EGL_CONTEXT_LOST                 = 0x300E // EGL 1.1 - IMG_power_management
 )
 
 const (
@@ -87,7 +195,7 @@ const (
 )
 
 const (
-	/* Config attributes */
+	// Config attributes
 	EGL_BUFFER_SIZE             eglConfigAttrib = 0x3020
 	EGL_ALPHA_SIZE                              = 0x3021
 	EGL_BLUE_SIZE                               = 0x3022
@@ -111,7 +219,7 @@ const (
 	EGL_TRANSPARENT_BLUE_VALUE                  = 0x3035
 	EGL_TRANSPARENT_GREEN_VALUE                 = 0x3036
 	EGL_TRANSPARENT_RED_VALUE                   = 0x3037
-	EGL_NONE                                    = 0x3038 /* Attrib list terminator */
+	EGL_NONE                                    = 0x3038 // Attrib list terminator
 	EGL_BIND_TO_TEXTURE_RGB                     = 0x3039
 	EGL_BIND_TO_TEXTURE_RGBA                    = 0x303A
 	EGL_MIN_SWAP_INTERVAL                       = 0x303B
@@ -120,29 +228,29 @@ const (
 	EGL_ALPHA_MASK_SIZE                         = 0x303E
 	EGL_COLOR_BUFFER_TYPE                       = 0x303F
 	EGL_RENDERABLE_TYPE                         = 0x3040
-	EGL_MATCH_NATIVE_PIXMAP                     = 0x3041 /* Pseudo-attribute (not queryable) */
+	EGL_MATCH_NATIVE_PIXMAP                     = 0x3041 // Pseudo-attribute (not queryable)
 	EGL_CONFORMANT                              = 0x3042
 
-	/* Minimum and maximum attribute values */
+	// Minimum and maximum attribute values
 	EGL_ATTRIB_FIRST = EGL_BUFFER_SIZE
 	EGL_ATTRIB_MAX   = EGL_CONFORMANT
 )
 
 const (
-	EGL_OPENGL_ES_BIT  EGLRenderableType = 0x0001 /* EGL_RENDERABLE_TYPE mask bits */
-	EGL_OPENVG_BIT                       = 0x0002 /* EGL_RENDERABLE_TYPE mask bits */
-	EGL_OPENGL_ES2_BIT                   = 0x0004 /* EGL_RENDERABLE_TYPE mask bits */
-	EGL_OPENGL_BIT                       = 0x0008 /* EGL_RENDERABLE_TYPE mask bits */
+	EGL_OPENGL_ES_BIT  EGLRenderableType = 0x0001 // EGL_RENDERABLE_TYPE mask bits
+	EGL_OPENVG_BIT                       = 0x0002 // EGL_RENDERABLE_TYPE mask bits
+	EGL_OPENGL_ES2_BIT                   = 0x0004 // EGL_RENDERABLE_TYPE mask bits
+	EGL_OPENGL_BIT                       = 0x0008 // EGL_RENDERABLE_TYPE mask bits
 )
 
 const (
-	EGL_PBUFFER_BIT                 EGLSurfaceType = 0x0001 /* EGL_SURFACE_TYPE mask bits */
-	EGL_PIXMAP_BIT                                 = 0x0002 /* EGL_SURFACE_TYPE mask bits */
-	EGL_WINDOW_BIT                                 = 0x0004 /* EGL_SURFACE_TYPE mask bits */
-	EGL_VG_COLORSPACE_LINEAR_BIT                   = 0x0020 /* EGL_SURFACE_TYPE mask bits */
-	EGL_VG_ALPHA_FORMAT_PRE_BIT                    = 0x0040 /* EGL_SURFACE_TYPE mask bits */
-	EGL_MULTISAMPLE_RESOLVE_BOX_BIT                = 0x0200 /* EGL_SURFACE_TYPE mask bits */
-	EGL_SWAP_BEHAVIOR_PRESERVED_BIT                = 0x0400 /* EGL_SURFACE_TYPE mask bits */
+	EGL_PBUFFER_BIT                 EGLSurfaceType = 0x0001 // EGL_SURFACE_TYPE mask bits
+	EGL_PIXMAP_BIT                                 = 0x0002 // EGL_SURFACE_TYPE mask bits
+	EGL_WINDOW_BIT                                 = 0x0004 // EGL_SURFACE_TYPE mask bits
+	EGL_VG_COLORSPACE_LINEAR_BIT                   = 0x0020 // EGL_SURFACE_TYPE mask bits
+	EGL_VG_ALPHA_FORMAT_PRE_BIT                    = 0x0040 // EGL_SURFACE_TYPE mask bits
+	EGL_MULTISAMPLE_RESOLVE_BOX_BIT                = 0x0200 // EGL_SURFACE_TYPE mask bits
+	EGL_SWAP_BEHAVIOR_PRESERVED_BIT                = 0x0400 // EGL_SURFACE_TYPE mask bits
 )
 
 const (
@@ -160,10 +268,6 @@ var (
 
 ////////////////////////////////////////////////////////////////////////////////
 // PRIVATE METHODS
-
-func eglGetError() EGLError {
-	return EGLError(C.eglGetError())
-}
 
 func eglGetConfigs(display EGLDisplay) ([]eglConfig, EGLError) {
 	var num_config C.EGLint
@@ -295,7 +399,6 @@ func EGLDestroySurface(display EGLDisplay, surface EGLSurface) EGLError {
 	}
 }
 
-/*
 EGLAPI EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config,
 	EGLNativeWindowType win,
 	const EGLint *attrib_list);
@@ -308,8 +411,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglDestroySurface(EGLDisplay dpy, EGLSurface surfa
 EGLAPI EGLBoolean EGLAPIENTRY eglQuerySurface(EGLDisplay dpy, EGLSurface surface,
 EGLint attribute, EGLint *value);
 
-*/
-
 func EGLQueryAPI() EGLAPI {
 	return EGLAPI(C.eglQueryAPI())
 }
@@ -319,46 +420,6 @@ func EGLBindAPI(api EGLAPI) EGLError {
 		return eglGetError()
 	} else {
 		return EGL_SUCCESS
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Stringify
-
-func (e EGLError) Error() string {
-	switch e {
-	case EGL_SUCCESS:
-		return "EGL_SUCCESS"
-	case EGL_NOT_INITIALIZED:
-		return "EGL_NOT_INITIALIZED"
-	case EGL_BAD_ACCESS:
-		return "EGL_BAD_ACCESS"
-	case EGL_BAD_ALLOC:
-		return "EGL_BAD_ALLOC"
-	case EGL_BAD_ATTRIBUTE:
-		return "EGL_BAD_ATTRIBUTE"
-	case EGL_BAD_CONFIG:
-		return "EGL_BAD_CONFIG"
-	case EGL_BAD_CONTEXT:
-		return "EGL_BAD_CONTEXT"
-	case EGL_BAD_CURRENT_SURFACE:
-		return "EGL_BAD_CURRENT_SURFACE"
-	case EGL_BAD_DISPLAY:
-		return "EGL_BAD_DISPLAY"
-	case EGL_BAD_MATCH:
-		return "EGL_BAD_MATCH"
-	case EGL_BAD_NATIVE_PIXMAP:
-		return "EGL_BAD_NATIVE_PIXMAP"
-	case EGL_BAD_NATIVE_WINDOW:
-		return "EGL_BAD_NATIVE_WINDOW"
-	case EGL_BAD_PARAMETER:
-		return "EGL_BAD_PARAMETER"
-	case EGL_BAD_SURFACE:
-		return "EGL_BAD_SURFACE"
-	case EGL_CONTEXT_LOST:
-		return "EGL_CONTEXT_LOST"
-	default:
-		return "Unknown EGL error"
 	}
 }
 
@@ -436,3 +497,4 @@ func (a eglConfigAttrib) String() string {
 		return "[?? Invalid eglConfigAttrib value]"
 	}
 }
+*/
