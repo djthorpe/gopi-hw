@@ -90,3 +90,21 @@ func TestResources_001(t *testing.T) {
 		t.Log(resource)
 	}
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// TEST DISPLAY INFO
+
+func TestInfo_001(t *testing.T) {
+	rpi.DX_Init()
+	for d := rpi.DX_DISPLAYID_MIN; d <= rpi.DX_DISPLAYID_MAX; d++ {
+		if display, err := rpi.DX_DisplayOpen(d); err != nil {
+			t.Error(err)
+		} else if info, err := rpi.DX_DisplayGetInfo(display); err != nil {
+			t.Error(err)
+		} else if err := rpi.DX_DisplayClose(display); err != nil {
+			t.Error(err)
+		} else {
+			t.Log(info)
+		}
+	}
+}

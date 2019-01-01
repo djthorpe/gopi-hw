@@ -126,7 +126,7 @@ func (this *hardware) SerialNumber() string {
 
 // Return the number of displays which can be opened
 func (this *hardware) NumberOfDisplays() uint {
-	return uint(rpi.DX_ID_MAX) + 1
+	return uint(rpi.DX_DISPLAYID_MAX) + 1
 }
 
 ////////////////////////////////////////////////////////////////////////////////
