@@ -13,6 +13,10 @@ FT_LDFLAGS=-lfreetype
 RPI_CFLAGS=-I/opt/vc/include -I/opt/vc/include/interface/vmcs_host
 RPI_LDFLAGS=-L/opt/vc/lib -lbcm_host
 
+#EGL
+EGL_CFLAGS=-I/opt/vc/include -DUSE_VCHIQ_ARM
+EGL_LDFLAGS=-L/opt/vc/lib -lEGL_static -lGLESv2_static -lkhrn_static -lvcos -lvchiq_arm -lbcm_host -lm
+
 all: test_rpi test_freetype install
 
 install:

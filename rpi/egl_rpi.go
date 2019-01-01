@@ -17,9 +17,7 @@ import (
 // CGO
 
 /*
-  #cgo CFLAGS:   -I/opt/vc/include -DUSE_VCHIQ_ARM
-  #cgo LDFLAGS:  -L/opt/vc/lib -lEGL_static -lGLESv2_static -lkhrn_static -lvcos -lvchiq_arm -lbcm_host -lm
-  #include <EGL/egl.h>
+#include <EGL/egl.h>
 */
 import "C"
 
