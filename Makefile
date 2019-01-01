@@ -29,6 +29,9 @@ install:
 test_rpi:
 	CGO_CFLAGS="${RPI_CFLAGS}" CGO_LDFLAGS="${RPI_LDFLAGS}" $(GOTEST) -v ./rpi
 
+test_dx:
+	CGO_CFLAGS="${RPI_CFLAGS}" CGO_LDFLAGS="${RPI_LDFLAGS}" $(GOTEST) -v ./rpi/dispmanx_test.go
+
 test_freetype:
 	CGO_CFLAGS="${FT_CFLAGS}" CGO_LDFLAGS="${FT_LDFLAGS}" $(GOTEST) -v ./freetype
 
