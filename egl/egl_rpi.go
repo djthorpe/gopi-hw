@@ -10,6 +10,7 @@
 package egl
 
 import (
+	"strings"
 	"unsafe"
 
 	"github.com/djthorpe/gopi"
@@ -28,13 +29,16 @@ import "C"
 
 type (
 	EGL_Display         C.EGLDisplay
-	EGL_Error           C.EGLint
-	EGL_Query           C.EGLint
 	EGL_Config          C.EGLConfig
 	EGL_ConfigAttrib    C.EGLint
+	EGL_Context         C.EGLContext
+	EGL_Surface         C.EGLSurface
+	EGL_Error           C.EGLint
+	EGL_Query           C.EGLint
 	EGL_RenderableFlag  C.EGLint
 	EGL_SurfaceTypeFlag C.EGLint
 	EGL_API             C.EGLint
+	EGL_NativeWindow    uintptr
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -117,6 +121,8 @@ const (
 	EGL_RENDERABLE_FLAG_OPENVG     EGL_RenderableFlag = 0x0002
 	EGL_RENDERABLE_FLAG_OPENGL_ES2 EGL_RenderableFlag = 0x0004
 	EGL_RENDERABLE_FLAG_OPENGL     EGL_RenderableFlag = 0x0008
+	EGL_RENDERABLE_FLAG_MIN                           = EGL_RENDERABLE_FLAG_OPENGL_ES
+	EGL_RENDERABLE_FLAG_MAX                           = EGL_RENDERABLE_FLAG_OPENGL
 )
 
 const (
@@ -127,12 +133,17 @@ const (
 	EGL_SURFACETYPE_FLAG_VG_ALPHA_FORMAT_PRE     EGL_SurfaceTypeFlag = 0x0040 /* EGL_SURFACE_TYPE mask bits */
 	EGL_SURFACETYPE_FLAG_MULTISAMPLE_RESOLVE_BOX EGL_SurfaceTypeFlag = 0x0200 /* EGL_SURFACE_TYPE mask bits */
 	EGL_SURFACETYPE_FLAG_SWAP_BEHAVIOR_PRESERVED EGL_SurfaceTypeFlag = 0x0400 /* EGL_SURFACE_TYPE mask bits */
+	EGL_SURFACETYPE_FLAG_MIN                                         = EGL_SURFACETYPE_FLAG_PBUFFER
+	EGL_SURFACETYPE_FLAG_MAX                                         = EGL_SURFACETYPE_FLAG_SWAP_BEHAVIOR_PRESERVED
 )
 
 const (
+	EGL_API_NONE      EGL_API = 0
 	EGL_API_OPENGL_ES EGL_API = 0x30A0
 	EGL_API_OPENVG    EGL_API = 0x30A1
 	EGL_API_OPENGL    EGL_API = 0x30A2
+	EGL_API_MIN               = EGL_API_OPENGL_ES
+	EGL_API_MAX               = EGL_API_OPENGL
 )
 
 var (
@@ -142,10 +153,15 @@ var (
 		"OpenGL_ES2": gopi.SURFACE_TYPE_OPENGL_ES2,
 		"OpenVG":     gopi.SURFACE_TYPE_OPENVG,
 	}
-	EGL_Renderable_Map = map[EGL_API]EGL_RenderableFlag{
-		EGL_API_OPENGL:    EGL_RENDERABLE_FLAG_OPENGL,
-		EGL_API_OPENGL_ES: EGL_RENDERABLE_FLAG_OPENGL_ES,
-		EGL_API_OPENVG:    EGL_RENDERABLE_FLAG_OPENVG,
+	EGL_APIMap = map[gopi.SurfaceType]EGL_API{
+		gopi.SURFACE_TYPE_OPENGL_ES: EGL_API_OPENGL_ES,
+		gopi.SURFACE_TYPE_OPENVG:    EGL_API_OPENVG,
+		gopi.SURFACE_TYPE_OPENGL:    EGL_API_OPENGL,
+	}
+	EGL_RenderableMap = map[gopi.SurfaceType]EGL_RenderableFlag{
+		gopi.SURFACE_TYPE_OPENGL:    EGL_RENDERABLE_FLAG_OPENGL,
+		gopi.SURFACE_TYPE_OPENGL_ES: EGL_RENDERABLE_FLAG_OPENGL_ES,
+		gopi.SURFACE_TYPE_OPENVG:    EGL_RENDERABLE_FLAG_OPENVG,
 	}
 )
 
@@ -280,6 +296,79 @@ func EGL_ChooseConfig(display EGL_Display, rgb_bits uint, alpha_bits uint, surfa
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// API
+
+func EGL_BindAPI(api EGL_API) error {
+	if success := C.eglBindAPI(C.EGLenum(api)); success != EGL_TRUE {
+		return EGL_GetError()
+	} else {
+		return nil
+	}
+}
+
+func EGL_QueryAPI() (EGL_API, error) {
+	if api := EGL_API(C.eglQueryAPI()); api == 0 {
+		return EGL_API_NONE, EGL_GetError()
+	} else {
+		return api, nil
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// CONTEXT
+
+func EGL_CreateContext(display EGL_Display, config EGL_Config, share_context EGL_Context) (EGL_Context, error) {
+	if context := EGL_Context(C.eglCreateContext(C.EGLDisplay(display), C.EGLConfig(config), C.EGLContext(share_context), nil)); context == nil {
+		return nil, EGL_GetError()
+	} else {
+		return context, nil
+	}
+}
+
+func EGL_DestroyContext(display EGL_Display, context EGL_Context) error {
+	if C.eglDestroyContext(C.EGLDisplay(display), C.EGLContext(context)) != EGL_TRUE {
+		return EGL_GetError()
+	} else {
+		return nil
+	}
+}
+
+func EGL_MakeCurrent(display EGL_Display, draw, read EGL_Surface, context EGL_Context) error {
+	if C.eglMakeCurrent(C.EGLDisplay(display), C.EGLSurface(draw), C.EGLSurface(read), C.EGLContext(context)) != EGL_TRUE {
+		return EGL_GetError()
+	} else {
+		return nil
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// SURFACE
+
+func EGL_CreateSurface(display EGL_Display, config EGL_Config, window EGL_NativeWindow) (EGL_Surface, error) {
+	if surface := EGL_Surface(C.eglCreateWindowSurface(C.EGLDisplay(display), C.EGLConfig(config), C.EGLNativeWindowType(window), nil)); surface == nil {
+		return nil, EGL_GetError()
+	} else {
+		return surface, nil
+	}
+}
+
+func EGL_DestroySurface(display EGL_Display, surface EGL_Surface) error {
+	if C.eglDestroySurface(C.EGLDisplay(display), C.EGLSurface(surface)) != EGL_TRUE {
+		return EGL_GetError()
+	} else {
+		return nil
+	}
+}
+
+func EGL_SwapBuffers(display EGL_Display, surface EGL_Surface) error {
+	if C.eglSwapBuffers(C.EGLDisplay(display), C.EGLSurface(surface)) != EGL_TRUE {
+		return EGL_GetError()
+	} else {
+		return nil
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // STRINGIFY
 
 func (e EGL_Error) Error() string {
@@ -394,24 +483,72 @@ func (a EGL_ConfigAttrib) Error() string {
 	}
 }
 
+func (a EGL_API) String() string {
+	switch a {
+	case EGL_API_OPENGL_ES:
+		return "EGL_API_OPENGL_ES"
+	case EGL_API_OPENGL:
+		return "EGL_API_OPENGL"
+	case EGL_API_OPENVG:
+		return "EGL_API_OPENVG"
+	default:
+		return "[?? Invalid EGL_API value]"
+	}
+}
+
+func (f EGL_RenderableFlag) String() string {
+	parts := ""
+	for flag := EGL_RENDERABLE_FLAG_MIN; flag <= EGL_RENDERABLE_FLAG_MAX; flag <<= 1 {
+		if f&flag == 0 {
+			continue
+		}
+		switch flag {
+		case EGL_RENDERABLE_FLAG_OPENGL_ES:
+			parts += "|" + "EGL_RENDERABLE_FLAG_OPENGL_ES"
+		case EGL_RENDERABLE_FLAG_OPENVG:
+			parts += "|" + "EGL_RENDERABLE_FLAG_OPENVG"
+		case EGL_RENDERABLE_FLAG_OPENGL_ES2:
+			parts += "|" + "EGL_RENDERABLE_FLAG_OPENGL_ES2"
+		case EGL_RENDERABLE_FLAG_OPENGL:
+			parts += "|" + "EGL_RENDERABLE_FLAG_OPENGL"
+		default:
+			parts += "|" + "[?? Invalid EGL_RenderableFlag value]"
+		}
+	}
+	return strings.Trim(parts, "|")
+}
+
+func (f EGL_SurfaceTypeFlag) String() string {
+	parts := ""
+	for flag := EGL_SURFACETYPE_FLAG_MIN; flag <= EGL_SURFACETYPE_FLAG_MAX; flag <<= 1 {
+		if f&flag == 0 {
+			continue
+		}
+		switch flag {
+		case EGL_SURFACETYPE_FLAG_PBUFFER:
+			parts += "|" + "EGL_SURFACETYPE_FLAG_PBUFFER"
+		case EGL_SURFACETYPE_FLAG_PIXMAP:
+			parts += "|" + "EGL_SURFACETYPE_FLAG_PIXMAP"
+		case EGL_SURFACETYPE_FLAG_WINDOW:
+			parts += "|" + "EGL_SURFACETYPE_FLAG_WINDOW"
+		case EGL_SURFACETYPE_FLAG_VG_COLORSPACE_LINEAR:
+			parts += "|" + "EGL_SURFACETYPE_FLAG_VG_COLORSPACE_LINEAR"
+		case EGL_SURFACETYPE_FLAG_VG_ALPHA_FORMAT_PRE:
+			parts += "|" + "EGL_SURFACETYPE_FLAG_VG_ALPHA_FORMAT_PRE"
+		case EGL_SURFACETYPE_FLAG_MULTISAMPLE_RESOLVE_BOX:
+			parts += "|" + "EGL_SURFACETYPE_FLAG_MULTISAMPLE_RESOLVE_BOX"
+		case EGL_SURFACETYPE_FLAG_SWAP_BEHAVIOR_PRESERVED:
+			parts += "|" + "EGL_SURFACETYPE_FLAG_SWAP_BEHAVIOR_PRESERVED"
+		default:
+			parts += "|" + "[?? Invalid EGL_SurfaceTypeFlag value]"
+		}
+	}
+	return strings.Trim(parts, "|")
+}
+
 /*
 ////////////////////////////////////////////////////////////////////////////////
 // TYPES
-
-type (
-	EGLDisplay           C.EGLDisplay
-	EGLSurface           C.EGLSurface
-	EGLNativeDisplayType C.EGLNativeDisplayType
-	EGLBoolean           C.EGLBoolean
-	EGLInt               C.EGLint
-	EGLError             C.EGLint
-	EGLAPI               C.EGLenum
-	EGLRenderableType    C.EGLint
-	EGLSurfaceType       C.EGLint
-
-	eglConfig       uintptr
-	eglConfigAttrib C.EGLint
-)
 
 // Native window structure
 type EGLNativeWindowType struct {
@@ -419,25 +556,6 @@ type EGLNativeWindowType struct {
 	width  int
 	height int
 }
-
-const (
-	EGL_PBUFFER_BIT                 EGLSurfaceType = 0x0001 // EGL_SURFACE_TYPE mask bits
-	EGL_PIXMAP_BIT                                 = 0x0002 // EGL_SURFACE_TYPE mask bits
-	EGL_WINDOW_BIT                                 = 0x0004 // EGL_SURFACE_TYPE mask bits
-	EGL_VG_COLORSPACE_LINEAR_BIT                   = 0x0020 // EGL_SURFACE_TYPE mask bits
-	EGL_VG_ALPHA_FORMAT_PRE_BIT                    = 0x0040 // EGL_SURFACE_TYPE mask bits
-	EGL_MULTISAMPLE_RESOLVE_BOX_BIT                = 0x0200 // EGL_SURFACE_TYPE mask bits
-	EGL_SWAP_BEHAVIOR_PRESERVED_BIT                = 0x0400 // EGL_SURFACE_TYPE mask bits
-)
-
-const (
-	EGL_OPENGL_ES_API EGLAPI = 0x30A0
-	EGL_OPENVG_API           = 0x30A1
-	EGL_OPENGL_API           = 0x30A2
-)
-
-////////////////////////////////////////////////////////////////////////////////
-// PRIVATE METHODS
 
 ////////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS
@@ -473,17 +591,5 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePixmapSurface(EGLDisplay dpy, EGLConfig c
 EGLAPI EGLBoolean EGLAPIENTRY eglDestroySurface(EGLDisplay dpy, EGLSurface surface);
 EGLAPI EGLBoolean EGLAPIENTRY eglQuerySurface(EGLDisplay dpy, EGLSurface surface,
 EGLint attribute, EGLint *value);
-
-func EGLQueryAPI() EGLAPI {
-	return EGLAPI(C.eglQueryAPI())
-}
-
-func EGLBindAPI(api EGLAPI) EGLError {
-	if C.eglBindAPI(C.EGLenum(api)) != C.EGLBoolean(EGL_TRUE) {
-		return eglGetError()
-	} else {
-		return EGL_SUCCESS
-	}
-}
 
 */
