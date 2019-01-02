@@ -9,7 +9,11 @@
 
 package egl
 
-import "unsafe"
+import (
+	"unsafe"
+
+	"github.com/djthorpe/gopi"
+)
 
 ////////////////////////////////////////////////////////////////////////////////
 // CGO
@@ -132,10 +136,11 @@ const (
 )
 
 var (
-	EGL_API_Map = map[string]EGL_API{
-		"OpenGL":    EGL_API_OPENGL,
-		"OpenGL_ES": EGL_API_OPENGL_ES,
-		"OpenVG":    EGL_API_OPENVG,
+	EGL_SurfaceTypeMap = map[string]gopi.SurfaceType{
+		"OpenGL":     gopi.SURFACE_TYPE_OPENGL,
+		"OpenGL_ES":  gopi.SURFACE_TYPE_OPENGL_ES,
+		"OpenGL_ES2": gopi.SURFACE_TYPE_OPENGL_ES2,
+		"OpenVG":     gopi.SURFACE_TYPE_OPENVG,
 	}
 	EGL_Renderable_Map = map[EGL_API]EGL_RenderableFlag{
 		EGL_API_OPENGL:    EGL_RENDERABLE_FLAG_OPENGL,
