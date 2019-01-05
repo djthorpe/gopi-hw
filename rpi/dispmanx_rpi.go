@@ -289,12 +289,6 @@ func DX_ResourceReadData(handle DX_Resource, src DX_Rect, dest uintptr, dest_pit
 	}
 }
 
-/*
-func dxAlignUp(value, alignment uint32) uint32 {
-	return ((value - 1) & ^(alignment - 1)) + alignment
-}
-*/
-
 ////////////////////////////////////////////////////////////////////////////////
 // UPDATES
 
@@ -576,4 +570,11 @@ func (t DX_ImageType) String() string {
 	default:
 		return "[?? Invalid DX_ImageType value]"
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// MISC
+
+func DX_AlignUp(value, alignment uint32) uint32 {
+	return ((value - 1) & ^(alignment - 1)) + alignment
 }
