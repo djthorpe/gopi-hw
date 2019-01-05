@@ -20,6 +20,7 @@ import (
 // CGO
 
 /*
+#cgo pkg-config: egl
 #include <EGL/egl.h>
 */
 import "C"
