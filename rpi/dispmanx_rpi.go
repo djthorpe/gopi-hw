@@ -14,6 +14,7 @@ package rpi
 import (
 	// Frameworks
 	"fmt"
+	"strings"
 	"unsafe"
 
 	"github.com/djthorpe/gopi"
@@ -44,6 +45,7 @@ type (
 	DX_Protection    C.uint32_t
 	DX_AlphaFlags    C.uint32_t
 	DX_ClampMode     C.int
+	DX_ChangeFlags   C.int
 )
 
 type DX_DisplayModeInfo struct {
@@ -97,6 +99,18 @@ const (
 	DX_TRANSFORM_ROTATE_180
 	DX_TRANSFORM_ROTATE_270
 	DX_TRANSFORM_MAX = DX_TRANSFORM_ROTATE_270
+)
+
+const (
+	// DX_ChangeFlags values
+	DX_CHANGE_FLAG_LAYER     DX_ChangeFlags = (1 << 0)
+	DX_CHANGE_FLAG_OPACITY   DX_ChangeFlags = (1 << 1)
+	DX_CHANGE_FLAG_DEST_RECT DX_ChangeFlags = (1 << 2)
+	DX_CHANGE_FLAG_SRC_RECT  DX_ChangeFlags = (1 << 3)
+	DX_CHANGE_FLAG_MASK      DX_ChangeFlags = (1 << 4)
+	DX_CHANGE_FLAG_TRANSFORM DX_ChangeFlags = (1 << 5)
+	DX_CHANGE_FLAG_MIN                      = DX_CHANGE_FLAG_LAYER
+	DX_CHANGE_FLAG_MAX                      = DX_CHANGE_FLAG_TRANSFORM
 )
 
 const (
@@ -346,21 +360,19 @@ func DX_ElementModified(update DX_Update, element DX_Element, rect DX_Rect) erro
 	}
 }
 
-/*
-func dxElementChangeDestinationFrame(update dxUpdateHandle, element dxElementHandle, frame *DXFrame) bool {
-	return C.vc_dispmanx_element_change_attributes(
+func DX_ElementChangeAttributes(update DX_Update, element DX_Element, flags DX_ChangeFlags, layer uint16, opacity uint8, dest_rect, src_rect DX_Rect, transform DX_Transform) error {
+	if C.vc_dispmanx_element_change_attributes(
 		C.DISPMANX_UPDATE_HANDLE_T(update),
 		C.DISPMANX_ELEMENT_HANDLE_T(element),
-		C.uint32_t(DX_ELEMENT_CHANGE_DEST_RECT),
-		C.int32_t(0),                          // layer
-		C.uint8_t(0),                          // opacity
-		(*C.VC_RECT_T)(unsafe.Pointer(frame)), // dest_rect
-		(*C.VC_RECT_T)(unsafe.Pointer(nil)),   // src_rect
-		C.DISPMANX_RESOURCE_HANDLE_T(0),       // mask
-		C.DISPMANX_TRANSFORM_T(0),             // transform
-	) == DX_ELEMENT_SUCCESS
+		C.uint32_t(flags),
+		C.int32_t(layer),
+		C.uint8_t(opacity),
+		dest_rect, src_rect, 0, C.DISPMANX_TRANSFORM_T(transform)) == DX_SUCCESS {
+		return nil
+	} else {
+		return gopi.ErrBadParameter
+	}
 }
-*/
 
 ////////////////////////////////////////////////////////////////////////////////
 // RECT
@@ -413,6 +425,32 @@ func (t DX_Transform) String() string {
 	default:
 		return "[?? Invalid DX_Transform value]"
 	}
+}
+
+func (f DX_ChangeFlags) String() string {
+	parts := ""
+	for flag := DX_CHANGE_FLAG_MIN; flag <= DX_CHANGE_FLAG_MAX; flag <<= 1 {
+		if f&flag == 0 {
+			continue
+		}
+		switch flag {
+		case DX_CHANGE_FLAG_LAYER:
+			parts += "|" + "DX_CHANGE_FLAG_LAYER"
+		case DX_CHANGE_FLAG_OPACITY:
+			parts += "|" + "DX_CHANGE_FLAG_OPACITY"
+		case DX_CHANGE_FLAG_DEST_RECT:
+			parts += "|" + "DX_CHANGE_FLAG_DEST_RECT"
+		case DX_CHANGE_FLAG_SRC_RECT:
+			parts += "|" + "DX_CHANGE_FLAG_SRC_RECT"
+		case DX_CHANGE_FLAG_MASK:
+			parts += "|" + "DX_CHANGE_FLAG_MASK"
+		case DX_CHANGE_FLAG_TRANSFORM:
+			parts += "|" + "DX_CHANGE_FLAG_TRANSFORM"
+		default:
+			parts += "|" + "[?? Invalid DX_ChangeFlags value]"
+		}
+	}
+	return strings.Trim(parts, "|")
 }
 
 func (f DX_InputFormat) String() string {
