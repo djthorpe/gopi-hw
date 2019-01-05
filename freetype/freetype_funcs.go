@@ -20,8 +20,9 @@ import (
 // CGO
 
 /*
-  #include <ft2build.h>
-  #include FT_FREETYPE_H
+#cgo pkg-config: freetype2
+#include <ft2build.h>
+#include FT_FREETYPE_H
 */
 import "C"
 

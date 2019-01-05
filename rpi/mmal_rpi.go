@@ -17,8 +17,7 @@ package rpi
 // CGO
 
 /*
-#cgo CFLAGS: -I/opt/vc/include
-#cgo LDFLAGS: -L/opt/vc/lib -lmmal -lmmal_core -lmmal_util
+#cgo pkg-config: mmal
 #include <interface/mmal/mmal.h>
 #include <interface/mmal/util/mmal_connection.h>
 */

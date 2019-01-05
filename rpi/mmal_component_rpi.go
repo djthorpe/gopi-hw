@@ -20,7 +20,7 @@ import (
 // CGO
 
 /*
-#cgo CFLAGS: -I/opt/vc/include
+#cgo pkg-config: mmal
 #include <interface/mmal/mmal.h>
 */
 import "C"

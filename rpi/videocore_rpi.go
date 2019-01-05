@@ -25,14 +25,11 @@ import (
 // CGO
 
 /*
-    #cgo CFLAGS: -I/opt/vc/include -I/opt/vc/include/interface/vmcs_host
-    #cgo LDFLAGS: -L/opt/vc/lib -lbcm_host -lvcos
-	#include "vc_vchi_gencmd.h"
-	#include "interface/vcos/vcos_types.h"
-    #include "bcm_host.h"
-	int vc_gencmd_wrap(char* response,int maxlen,const char* command) {
-		return vc_gencmd(response,maxlen,command);
-	}
+#cgo pkg-config: bcm_host
+#include "bcm_host.h"
+int vc_gencmd_wrap(char* response,int maxlen,const char* command) {
+  return vc_gencmd(response,maxlen,command);
+}
 */
 import "C"
 

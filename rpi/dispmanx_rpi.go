@@ -23,7 +23,7 @@ import (
 // CGO
 
 /*
-#include <vc_dispmanx.h>
+#cgo pkg-config: bcm_host
 #include <bcm_host.h>
 */
 import "C"
