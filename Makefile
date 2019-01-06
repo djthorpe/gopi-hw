@@ -5,7 +5,7 @@ GOINSTALL=$(GOCMD) install $(GOFLAGS)
 GOTEST=$(GOCMD) test $(GOFLAGS) 
 GOCLEAN=$(GOCMD) clean
 
-all: test_rpi test_egl test_freetype install
+all: test_rpi test_egl test_freetype test_openvg install
 
 pkg-config:
 	PKG_CONFIG_PATH="/opt/vc/lib/pkgconfig"
@@ -32,6 +32,9 @@ test_dx: pkg-config
 
 test_freetype: pkg-config
 	$(GOTEST) -v ./freetype
+
+test_openvg: pkg-config
+	$(GOTEST) -v ./openvg
 
 clean: 
 	$(GOCLEAN)

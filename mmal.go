@@ -1,6 +1,6 @@
 /*
   Go Language Raspberry Pi Interface
-  (c) Copyright David Thorpe 2018
+  (c) Copyright David Thorpe 2018-2019
   All Rights Reserved
 
   Documentation http://djthorpe.github.io/gopi/
