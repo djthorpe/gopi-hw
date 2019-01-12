@@ -1,9 +1,9 @@
 package egl_test
 
 import (
-	"testing"
 	"fmt"
 	"strings"
+	"testing"
 
 	// Frameworks
 	"github.com/djthorpe/gopi-hw/egl"
@@ -42,7 +42,7 @@ func TestEGL_001(t *testing.T) {
 ////////////////////////////////////////////////////////////////////////////////
 // TEST EGL QUERY
 
-func TestQuery_001(t *testing.T) { 
+func TestQuery_001(t *testing.T) {
 	rpi.DX_Init()
 	if display, err := rpi.DX_DisplayOpen(rpi.DX_DISPLAYID_MAIN_LCD); err != nil {
 		t.Error(err)
@@ -50,13 +50,13 @@ func TestQuery_001(t *testing.T) {
 		t.Error("EGL_GetDisplay returned nil")
 	} else if major, minor, err := egl.EGL_Initialize(handle); err != nil {
 		t.Error(err)
-	} else if vendor := egl.EGL_QueryString(handle,egl.EGL_QUERY_VENDOR); vendor == "" {
+	} else if vendor := egl.EGL_QueryString(handle, egl.EGL_QUERY_VENDOR); vendor == "" {
 		t.Error("Empty value returned for EGL_QUERY_VENDOR")
-	} else if version := egl.EGL_QueryString(handle,egl.EGL_QUERY_VERSION); version == "" {
+	} else if version := egl.EGL_QueryString(handle, egl.EGL_QUERY_VERSION); version == "" {
 		t.Error("Empty value returned for EGL_QUERY_VERSION")
-	} else if extensions := egl.EGL_QueryString(handle,egl.EGL_QUERY_EXTENSIONS); extensions == "" {
+	} else if extensions := egl.EGL_QueryString(handle, egl.EGL_QUERY_EXTENSIONS); extensions == "" {
 		t.Error("Empty value returned for EGL_QUERY_EXTENSIONS")
-	} else if apis := egl.EGL_QueryString(handle,egl.EGL_QUERY_CLIENT_APIS); extensions == "" {
+	} else if apis := egl.EGL_QueryString(handle, egl.EGL_QUERY_CLIENT_APIS); extensions == "" {
 		t.Error("Empty value returned for EGL_QUERY_CLIENT_APIS")
 	} else if err := egl.EGL_Terminate(handle); err != nil {
 		t.Error(err)
@@ -72,11 +72,10 @@ func TestQuery_001(t *testing.T) {
 	}
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // TEST EGL CONFIGS
 
-func TestConfigs_001(t *testing.T) { 
+func TestConfigs_001(t *testing.T) {
 	rpi.DX_Init()
 	if display, err := rpi.DX_DisplayOpen(rpi.DX_DISPLAYID_MAIN_LCD); err != nil {
 		t.Error(err)
@@ -84,11 +83,11 @@ func TestConfigs_001(t *testing.T) {
 		t.Error("EGL_GetDisplay returned nil")
 	} else if major, minor, err := egl.EGL_Initialize(handle); err != nil {
 		t.Error(err)
-	} else if configs,err := egl.EGL_GetConfigs(handle); err != nil {
+	} else if configs, err := egl.EGL_GetConfigs(handle); err != nil {
 		t.Error(err)
-		} else if len(configs) == 0  {
-			t.Error("Expected at least one config")
-		} else if err := egl.EGL_Terminate(handle); err != nil {
+	} else if len(configs) == 0 {
+		t.Error("Expected at least one config")
+	} else if err := egl.EGL_Terminate(handle); err != nil {
 		t.Error(err)
 	} else if err := rpi.DX_DisplayClose(display); err != nil {
 		t.Error(err)
@@ -99,7 +98,7 @@ func TestConfigs_001(t *testing.T) {
 	}
 }
 
-func TestConfigs_002(t *testing.T) { 
+func TestConfigs_002(t *testing.T) {
 	rpi.DX_Init()
 	if display, err := rpi.DX_DisplayOpen(rpi.DX_DISPLAYID_MAIN_LCD); err != nil {
 		t.Error(err)
@@ -107,11 +106,11 @@ func TestConfigs_002(t *testing.T) {
 		t.Error("EGL_GetDisplay returned nil")
 	} else if major, minor, err := egl.EGL_Initialize(handle); err != nil {
 		t.Error(err)
-	} else if configs,err := egl.EGL_GetConfigs(handle); err != nil {
+	} else if configs, err := egl.EGL_GetConfigs(handle); err != nil {
 		t.Error(err)
-	} else if len(configs) == 0  {
+	} else if len(configs) == 0 {
 		t.Error("Expected at least one config")
-	} else if attributes, err := egl.EGL_GetConfigAttribs(handle,configs[0]); err != nil {
+	} else if attributes, err := egl.EGL_GetConfigAttribs(handle, configs[0]); err != nil {
 		t.Error(err)
 	} else if err := egl.EGL_Terminate(handle); err != nil {
 		t.Error(err)
@@ -124,7 +123,8 @@ func TestConfigs_002(t *testing.T) {
 	}
 }
 
-func TestConfigs_003(t *testing.T) { 
+func TestConfigs_003(t *testing.T) {
+	// RGBA32
 	rpi.DX_Init()
 	if display, err := rpi.DX_DisplayOpen(rpi.DX_DISPLAYID_MAIN_LCD); err != nil {
 		t.Error(err)
@@ -132,9 +132,57 @@ func TestConfigs_003(t *testing.T) {
 		t.Error("EGL_GetDisplay returned nil")
 	} else if major, minor, err := egl.EGL_Initialize(handle); err != nil {
 		t.Error(err)
-	} else if config, err := egl.EGL_ChooseConfig(handle,8,8,0,0); err != nil {
+	} else if config, err := egl.EGL_ChooseConfig(handle, 8, 8, 8, 8, 0, 0); err != nil {
 		t.Error(err)
-	} else if attributes, err := egl.EGL_GetConfigAttribs(handle,config); err != nil {
+	} else if attributes, err := egl.EGL_GetConfigAttribs(handle, config); err != nil {
+		t.Error(err)
+	} else if err := egl.EGL_Terminate(handle); err != nil {
+		t.Error(err)
+	} else if err := rpi.DX_DisplayClose(display); err != nil {
+		t.Error(err)
+	} else {
+		t.Log("display=", display)
+		t.Logf("egl_version= %v,%v", major, minor)
+		t.Logf("attributes= %v", attributes)
+	}
+}
+
+func TestConfigs_004(t *testing.T) {
+	// RGB565
+	rpi.DX_Init()
+	if display, err := rpi.DX_DisplayOpen(rpi.DX_DISPLAYID_MAIN_LCD); err != nil {
+		t.Error(err)
+	} else if handle := egl.EGL_GetDisplay(uint(rpi.DX_DISPLAYID_MAIN_LCD)); handle == nil {
+		t.Error("EGL_GetDisplay returned nil")
+	} else if major, minor, err := egl.EGL_Initialize(handle); err != nil {
+		t.Error(err)
+	} else if config, err := egl.EGL_ChooseConfig(handle, 5, 6, 5, 0, 0, 0); err != nil {
+		t.Error(err)
+	} else if attributes, err := egl.EGL_GetConfigAttribs(handle, config); err != nil {
+		t.Error(err)
+	} else if err := egl.EGL_Terminate(handle); err != nil {
+		t.Error(err)
+	} else if err := rpi.DX_DisplayClose(display); err != nil {
+		t.Error(err)
+	} else {
+		t.Log("display=", display)
+		t.Logf("egl_version= %v,%v", major, minor)
+		t.Logf("attributes= %v", attributes)
+	}
+}
+
+func TestConfigs_005(t *testing.T) {
+	// RGB888
+	rpi.DX_Init()
+	if display, err := rpi.DX_DisplayOpen(rpi.DX_DISPLAYID_MAIN_LCD); err != nil {
+		t.Error(err)
+	} else if handle := egl.EGL_GetDisplay(uint(rpi.DX_DISPLAYID_MAIN_LCD)); handle == nil {
+		t.Error("EGL_GetDisplay returned nil")
+	} else if major, minor, err := egl.EGL_Initialize(handle); err != nil {
+		t.Error(err)
+	} else if config, err := egl.EGL_ChooseConfig(handle, 8, 8, 8, 0, 0, 0); err != nil {
+		t.Error(err)
+	} else if attributes, err := egl.EGL_GetConfigAttribs(handle, config); err != nil {
 		t.Error(err)
 	} else if err := egl.EGL_Terminate(handle); err != nil {
 		t.Error(err)
@@ -153,10 +201,10 @@ func TestConfigs_003(t *testing.T) {
 func TestAPI_000(t *testing.T) {
 	for api := egl.EGL_API_MIN; api <= egl.EGL_API_MAX; api++ {
 		api_string := fmt.Sprint(api)
-		if strings.HasPrefix(api_string,"EGL_API_") == true {
-			t.Logf("%v => %v",api,api_string)
+		if strings.HasPrefix(api_string, "EGL_API_") == true {
+			t.Logf("%v => %v", api, api_string)
 		} else {
-			t.Errorf("Error for %v => %v",api,api_string)
+			t.Errorf("Error for %v => %v", api, api_string)
 		}
 	}
 }
@@ -170,22 +218,22 @@ func TestAPI_001(t *testing.T) {
 	} else if _, _, err := egl.EGL_Initialize(handle); err != nil {
 		t.Error(err)
 	} else {
-		types := strings.Split(egl.EGL_QueryString(handle,egl.EGL_QUERY_CLIENT_APIS)," ")
-		for _,api_string := range types {
-			if surface_type, exists  := egl.EGL_SurfaceTypeMap[api_string]; exists == false {
-				t.Error("Does not exist in EGL_SurfaceTypeMap:",api_string)
+		types := strings.Split(egl.EGL_QueryString(handle, egl.EGL_QUERY_CLIENT_APIS), " ")
+		for _, api_string := range types {
+			if surface_type, exists := egl.EGL_SurfaceTypeMap[api_string]; exists == false {
+				t.Error("Does not exist in EGL_SurfaceTypeMap:", api_string)
 			} else if api, exists := egl.EGL_APIMap[surface_type]; exists == false {
-				t.Error("Does not exist in EGL_APIMap:",api_string)
+				t.Error("Does not exist in EGL_APIMap:", api_string)
 			} else if renderable, exists := egl.EGL_RenderableMap[surface_type]; exists == false {
-				t.Error("Does not exist in EGL_Renderable_Map:",api_string)
+				t.Error("Does not exist in EGL_Renderable_Map:", api_string)
 			} else if err := egl.EGL_BindAPI(api); err != nil {
-				t.Error("Error in EGL_BindAPI:",err)
+				t.Error("Error in EGL_BindAPI:", err)
 			} else if api_, err := egl.EGL_QueryAPI(); err != nil {
 				t.Error(err)
 			} else if api != api_ {
-				t.Error("Unexpected mismatch",api,api_)
+				t.Error("Unexpected mismatch", api, api_)
 			} else {
-				t.Logf("%v => %v => %v => %v, %v",api_string,surface_type,api,api_,renderable)
+				t.Logf("%v => %v => %v => %v, %v", api_string, surface_type, api, api_, renderable)
 			}
 		}
 		if err := egl.EGL_Terminate(handle); err != nil {
