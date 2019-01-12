@@ -24,7 +24,7 @@ func TestStatus_000(t *testing.T) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// TEST FLUSH
+// TEST FLUSH & FINISH
 
 func TestFlush_000(t *testing.T) {
 	if err := vg.VG_Flush(); err != nil {
