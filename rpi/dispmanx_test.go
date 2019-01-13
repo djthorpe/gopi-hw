@@ -77,6 +77,30 @@ func TestRect_002(t *testing.T) {
 	}
 }
 
+func TestRect_003(t *testing.T) {
+	r1 := rpi.DX_NewRect(0, 0, 10, 10)
+	r2 := rpi.DX_NewRect(-10, -10, 20, 20)
+	r3 := rpi.DX_RectIntersection(r1, r2)
+	t.Log("r1", rpi.DX_RectString(r1))
+	t.Log("r2", rpi.DX_RectString(r2))
+	t.Log("r1 u r2", rpi.DX_RectString(r3))
+	if size := rpi.DX_RectSize(r3); size.W != 10 || size.H != 10 {
+		t.Error("Expected intersection of rectangles to be of size 10")
+	}
+}
+
+func TestRect_004(t *testing.T) {
+	r1 := rpi.DX_NewRect(0, 0, 10, 10)
+	r2 := rpi.DX_NewRect(-10, -10, 50, 50)
+	r3 := rpi.DX_RectIntersection(r1, r2)
+	t.Log("r1", rpi.DX_RectString(r1))
+	t.Log("r2", rpi.DX_RectString(r2))
+	t.Log("r1 u r2", rpi.DX_RectString(r3))
+	if size := rpi.DX_RectSize(r3); size.W != 10 || size.H != 10 {
+		t.Error("Expected intersection of rectangles to be of size 10")
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // TEST RESOURCES
 

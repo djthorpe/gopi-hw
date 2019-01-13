@@ -148,21 +148,21 @@ const (
 )
 
 var (
-	EGL_SurfaceTypeMap = map[string]gopi.SurfaceType{
-		"OpenGL":     gopi.SURFACE_TYPE_OPENGL,
-		"OpenGL_ES":  gopi.SURFACE_TYPE_OPENGL_ES,
-		"OpenGL_ES2": gopi.SURFACE_TYPE_OPENGL_ES2,
-		"OpenVG":     gopi.SURFACE_TYPE_OPENVG,
+	EGL_SurfaceTypeMap = map[string]gopi.SurfaceFlags{
+		"OpenGL":     gopi.SURFACE_FLAG_OPENGL,
+		"OpenGL_ES":  gopi.SURFACE_FLAG_OPENGL_ES,
+		"OpenGL_ES2": gopi.SURFACE_FLAG_OPENGL_ES2,
+		"OpenVG":     gopi.SURFACE_FLAG_OPENVG,
 	}
-	EGL_APIMap = map[gopi.SurfaceType]EGL_API{
-		gopi.SURFACE_TYPE_OPENGL_ES: EGL_API_OPENGL_ES,
-		gopi.SURFACE_TYPE_OPENVG:    EGL_API_OPENVG,
-		gopi.SURFACE_TYPE_OPENGL:    EGL_API_OPENGL,
+	EGL_APIMap = map[gopi.SurfaceFlags]EGL_API{
+		gopi.SURFACE_FLAG_OPENGL_ES: EGL_API_OPENGL_ES,
+		gopi.SURFACE_FLAG_OPENVG:    EGL_API_OPENVG,
+		gopi.SURFACE_FLAG_OPENGL:    EGL_API_OPENGL,
 	}
-	EGL_RenderableMap = map[gopi.SurfaceType]EGL_RenderableFlag{
-		gopi.SURFACE_TYPE_OPENGL:    EGL_RENDERABLE_FLAG_OPENGL,
-		gopi.SURFACE_TYPE_OPENGL_ES: EGL_RENDERABLE_FLAG_OPENGL_ES,
-		gopi.SURFACE_TYPE_OPENVG:    EGL_RENDERABLE_FLAG_OPENVG,
+	EGL_RenderableMap = map[gopi.SurfaceFlags]EGL_RenderableFlag{
+		gopi.SURFACE_FLAG_OPENGL:    EGL_RENDERABLE_FLAG_OPENGL,
+		gopi.SURFACE_FLAG_OPENGL_ES: EGL_RENDERABLE_FLAG_OPENGL_ES,
+		gopi.SURFACE_FLAG_OPENVG:    EGL_RENDERABLE_FLAG_OPENVG,
 	}
 )
 
@@ -279,12 +279,12 @@ func EGL_ChooseConfig_(display EGL_Display, attributes map[EGL_ConfigAttrib]int)
 	}
 }
 
-func EGL_ChooseConfig(display EGL_Display, rgb_bits uint, alpha_bits uint, surface_type EGL_SurfaceTypeFlag, renderable_type EGL_RenderableFlag) (EGL_Config, error) {
+func EGL_ChooseConfig(display EGL_Display, r_bits, g_bits, b_bits, a_bits uint, surface_type EGL_SurfaceTypeFlag, renderable_type EGL_RenderableFlag) (EGL_Config, error) {
 	if configs, err := EGL_ChooseConfig_(display, map[EGL_ConfigAttrib]int{
-		EGL_RED_SIZE:        int(rgb_bits),
-		EGL_GREEN_SIZE:      int(rgb_bits),
-		EGL_BLUE_SIZE:       int(rgb_bits),
-		EGL_ALPHA_SIZE:      int(alpha_bits),
+		EGL_RED_SIZE:        int(r_bits),
+		EGL_GREEN_SIZE:      int(g_bits),
+		EGL_BLUE_SIZE:       int(b_bits),
+		EGL_ALPHA_SIZE:      int(a_bits),
 		EGL_SURFACE_TYPE:    int(surface_type),
 		EGL_RENDERABLE_TYPE: int(renderable_type),
 	}); err != nil {

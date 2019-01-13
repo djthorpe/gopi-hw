@@ -390,11 +390,38 @@ func DX_RectSet(rect DX_Rect, x, y int32, w, h uint32) error {
 }
 
 func DX_RectSize(rect DX_Rect) DX_Size {
-	return DX_Size{uint32(rect.width), uint32(rect.height)}
+	if rect == nil {
+		return DX_Size{}
+	} else {
+		return DX_Size{uint32(rect.width), uint32(rect.height)}
+	}
 }
 
 func DX_RectOrigin(rect DX_Rect) DX_Point {
-	return DX_Point{int32(rect.x), int32(rect.y)}
+	if rect == nil {
+		return DX_Point{}
+	} else {
+		return DX_Point{int32(rect.x), int32(rect.y)}
+	}
+}
+
+func DX_RectIntersection(a, b DX_Rect) DX_Rect {
+	// Check for incoming parameters
+	if a == nil || a.width == 0 || a.height == 0 {
+		return nil
+	}
+	if b == nil || b.width == 0 || b.height == 0 {
+		return nil
+	}
+	// Calculate bounds of intersecting rects
+	topleft := DX_Point{DX_MaxInt32(int32(a.x), int32(b.x)), DX_MaxInt32(int32(a.y), int32(b.y))}
+	bottomright := DX_Point{DX_MinInt32(int32(a.x)+int32(a.width), int32(b.x)+int32(b.width)), DX_MinInt32(int32(a.y)+int32(a.height), int32(b.y)+int32(b.height))}
+	// Return the rect or nil if there is no intersection
+	if topleft.X < bottomright.X && topleft.Y < bottomright.Y {
+		return DX_NewRect(topleft.X, topleft.Y, uint32(bottomright.X-topleft.X), uint32(bottomright.Y-topleft.Y))
+	} else {
+		return nil
+	}
 }
 
 func DX_RectString(r DX_Rect) string {
@@ -615,4 +642,20 @@ func (t DX_ImageType) String() string {
 
 func DX_AlignUp(value, alignment uint32) uint32 {
 	return ((value - 1) & ^(alignment - 1)) + alignment
+}
+
+func DX_MaxInt32(a, b int32) int32 {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
+}
+
+func DX_MinInt32(a, b int32) int32 {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
 }
