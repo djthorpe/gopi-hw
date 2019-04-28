@@ -1,7 +1,7 @@
 # Go parameters
 GOCMD=go
-GOINSTALL=$(GOCMD) install $(GOFLAGS)
-GOTEST=$(GOCMD) test $(GOFLAGS) 
+GOINSTALL=$(GOCMD) install
+GOTEST=$(GOCMD) test
 GOCLEAN=$(GOCMD) clean
 PKG_CONFIG_PATH="/opt/vc/lib/pkgconfig"
 
@@ -13,24 +13,30 @@ GOLDFLAGS += -X $(GOPI).GitHash=$(shell git rev-parse HEAD)
 GOLDFLAGS += -X $(GOPI).GoBuildTime=$(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 GOFLAGS = -ldflags "-s -w $(GOLDFLAGS)" 
 
+linux: install-linux
+
 darwin: install-darwin
 	
-rpi: test-rpi install-rpi
-
-test-rpi: test_rpi test_egl test_freetype test_openvg
+rpi: test-rpi test-dx test-freetype install-rpi
 
 install-darwin:
-	$(GOINSTALL) ./cmd/hw_list/...
+	$(GOINSTALL) -tags "darwin" ./cmd/hw_list/...
+
+install-linux:
+	$(GOINSTALL) -tags "linux" ./cmd/hw_list/...
 
 install-rpi:
-	$(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/gpio_ctrl
-	$(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/hw_list
-	$(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/i2c_detect
-	$(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/lirc_receive
-	$(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/pwm_ctrl
-	$(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/spi_ctrl
+	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/hw_list
+	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/gpio_ctrl
+	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/i2c_detect
+	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/lirc_receive
+	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/pwm_ctrl
+	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/spi_ctrl
+
+install-mmal:
 	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/mmal_camera_preview
 	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/mmal_encode_image
+	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/mmal_video_preview
 
 test-rpi:
 	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOTEST) -tags "rpi"  -v ./rpi

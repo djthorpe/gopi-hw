@@ -14,6 +14,7 @@ package hw
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	// Frameworks
 	gopi "github.com/djthorpe/gopi"
@@ -108,6 +109,16 @@ func (this *hardware) SerialNumber() string {
 // Return the number of displays which can be opened
 func (this *hardware) NumberOfDisplays() uint {
 	return uint(rpi.DX_DISPLAYID_MAX) + 1
+}
+
+// Return Host Uptime
+func (this *hardware) UptimeHost() time.Duration {
+	return 0
+}
+
+// Return load averages
+func (this *hardware) LoadAverage() (float64, float64, float64) {
+	return 0, 0, 0
 }
 
 ////////////////////////////////////////////////////////////////////////////////
