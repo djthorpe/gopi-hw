@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	// Frameworks
 	"github.com/djthorpe/gopi"
@@ -50,6 +51,8 @@ func mainLoop(app *gopi.AppInstance, done chan<- struct{}) error {
 	table.Append([]string{"name", fmt.Sprint(app.Hardware.Name())})
 	table.Append([]string{"serial_number", fmt.Sprint(app.Hardware.SerialNumber())})
 	table.Append([]string{"number_of_displays", fmt.Sprint(app.Hardware.NumberOfDisplays())})
+	table.Append([]string{"uptime_host", fmt.Sprint(app.Hardware.UptimeHost().Truncate(time.Second))})
+	table.Append([]string{"load_average", fmt.Sprint(app.Hardware.LoadAverage())})
 
 	// Module names
 	table.Append([]string{"hw", moduleName("hw")})
