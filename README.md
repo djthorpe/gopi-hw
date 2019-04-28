@@ -16,7 +16,6 @@ The gopi components provided by this repository are:
 | sys/hw         | linux,rpi,darwin | Hardware information, capabilities     | gopi.Hardware | 
 | sys/i2c        | linux            | I2C interface                          | gopi.I2C      |
 | sys/lirc       | linux            | Linux IR control (LIRC) interface      | gopi.LIRC     |
-| sys/metrics    | all              | Metrics gathering and reporting        | gopi.Metrics  |
 | sys/mmal       | rpi              | Multimedia Abstraction Layer           | hw.MMAL       |
 | sys/pwm        | rpi              | Pulse Wide Modulation (PWM) interface  | gopi.PWM      |
 | sys/spi        | linux            | SPI interface                          | gopi.SPI      |
@@ -42,20 +41,19 @@ bash% PKG_CONFIG_PATH="/opt/vc/lib/pkgconfig"
 bash% go install -tags rpi ./cmd/...
 ```
 
-There is a makefile which can be used for testing and installing bindings and examples:
+There is a makefile which can be used for testing and installing bindings and examples, on a per-platform
+basis:
 
 ```
-bash% make test_rpi
-bash% make test_freetype
-bash% make test_dx
-bash% make test_egl
-bash% make install
+bash% make linux   # makes for generic linux
+bash% make darwin  # makes for MacOS
+bash% make rpi     # makes for Raspberry Pi
 ```
 
 The resulting binaries are as follows. Use the `-help` flag to see the different options for each:
 
-  * `gpio_ctrl` Control the GPIO interface
   * `hw_list` Provide information on hardware capabilities
+  * `gpio_ctrl` Control the GPIO interface
   * `i2c_detect` Detect I2C devices
   * `lirc_receive` Display IR pulses from an IR device
   * `pwm_ctrl` Control PWM signals on the GPIO interface

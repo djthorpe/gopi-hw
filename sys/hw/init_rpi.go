@@ -22,15 +22,10 @@ import (
 func init() {
 	// Register hardware
 	gopi.RegisterModule(gopi.Module{
-		Name:     "hw/rpi",
-		Type:     gopi.MODULE_TYPE_HARDWARE,
-		Requires: []string{"metrics"},
+		Name: "hw/rpi",
+		Type: gopi.MODULE_TYPE_HARDWARE,
 		New: func(app *gopi.AppInstance) (gopi.Driver, error) {
-			config := Hardware{}
-			if metrics, ok := app.ModuleInstance("metrics").(gopi.Metrics); ok {
-				config.Metrics = metrics
-			}
-			return gopi.Open(config, app.Logger)
+			return gopi.Open(Hardware{}, app.Logger)
 		},
 	})
 }

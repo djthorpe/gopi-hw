@@ -24,9 +24,7 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 // TYPES
 
-type Hardware struct {
-	Metrics gopi.Metrics
-}
+type Hardware struct{}
 
 type hardware struct {
 	log     gopi.Logger
@@ -41,7 +39,7 @@ type hardware struct {
 
 // Open
 func (config Hardware) Open(logger gopi.Logger) (gopi.Driver, error) {
-	logger.Debug("hw.rpi.Open{ metrics=%v  }", config.Metrics)
+	logger.Debug("hw.rpi.Open{}")
 
 	// Create hardware object
 	this := new(hardware)
@@ -65,15 +63,6 @@ func (config Hardware) Open(logger gopi.Logger) (gopi.Driver, error) {
 		this.product = product
 	}
 
-	// Get channel for updating core CPU temperature
-	if core_temp_chan, err := config.Metrics.NewMetricFloat64(gopi.METRIC_TYPE_CELCIUS, gopi.METRIC_RATE_HOUR, "core_temp"); err != nil {
-		return nil, err
-	} else {
-		this.done = make(chan struct{})
-		// record the temperature every minute
-		go this.recordTemperature(core_temp_chan, time.Second*5)
-	}
-
 	// Success
 	return this, nil
 }
@@ -81,13 +70,6 @@ func (config Hardware) Open(logger gopi.Logger) (gopi.Driver, error) {
 // Close
 func (this *hardware) Close() error {
 	this.log.Debug("hw.rpi.Close{ }")
-
-	// Stop recording temperature
-	if this.done != nil {
-		this.done <- gopi.DONE
-		<-this.done
-		this.done = nil
-	}
 
 	// vcgencmd interface
 	if this.service != rpi.GENCMD_SERVICE_NONE {
@@ -129,6 +111,16 @@ func (this *hardware) NumberOfDisplays() uint {
 	return uint(rpi.DX_DISPLAYID_MAX) + 1
 }
 
+// Return Host Uptime
+func (this *hardware) UptimeHost() time.Duration {
+	return 0
+}
+
+// Return load averages
+func (this *hardware) LoadAverage() (float64, float64, float64) {
+	return 0, 0, 0
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // STRINGIFY
 
@@ -146,29 +138,4 @@ func (this *hardware) String() string {
 		}
 		return fmt.Sprintf("hw.rpi{ %v }", strings.Join(params, " "))
 	}
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// PRIVATE METHODS
-
-func (this *hardware) recordTemperature(core_temp_chan chan<- float64, delta time.Duration) {
-	this.log.Debug2("recordTemperature started with delta=%v", delta)
-	interval := time.NewTimer(0)
-FOR_LOOP:
-	for {
-		select {
-		case <-interval.C:
-			if cpu_temp, err := rpi.VCGetCoreTemperatureCelcius(); err != nil {
-				this.log.Error("recordTemperature: %v", err)
-			} else if core_temp_chan != nil {
-				core_temp_chan <- cpu_temp
-			}
-			interval.Reset(delta)
-		case <-this.done:
-			interval.Stop()
-			close(this.done)
-			break FOR_LOOP
-		}
-	}
-	this.log.Debug2("recordTemperature ended")
 }

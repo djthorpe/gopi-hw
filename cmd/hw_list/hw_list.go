@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	// Frameworks
 	"github.com/djthorpe/gopi"
@@ -23,7 +24,6 @@ import (
 	_ "github.com/djthorpe/gopi-hw/sys/hw"
 	_ "github.com/djthorpe/gopi-hw/sys/i2c"
 	_ "github.com/djthorpe/gopi-hw/sys/lirc"
-	_ "github.com/djthorpe/gopi-hw/sys/metrics"
 	_ "github.com/djthorpe/gopi-hw/sys/spi"
 	_ "github.com/djthorpe/gopi/sys/logger"
 )
@@ -51,42 +51,17 @@ func mainLoop(app *gopi.AppInstance, done chan<- struct{}) error {
 	table.Append([]string{"name", fmt.Sprint(app.Hardware.Name())})
 	table.Append([]string{"serial_number", fmt.Sprint(app.Hardware.SerialNumber())})
 	table.Append([]string{"number_of_displays", fmt.Sprint(app.Hardware.NumberOfDisplays())})
+	table.Append([]string{"uptime_host", fmt.Sprint(app.Hardware.UptimeHost().Truncate(time.Second))})
+	table.Append([]string{"load_average", fmt.Sprint(app.Hardware.LoadAverage())})
 
 	// Module names
 	table.Append([]string{"hw", moduleName("hw")})
-	table.Append([]string{"metrics", moduleName("metrics")})
 	table.Append([]string{"gpio", moduleName("gpio")})
 	table.Append([]string{"i2c", moduleName("i2c")})
 	table.Append([]string{"spi", moduleName("spi")})
 	table.Append([]string{"lirc", moduleName("lirc")})
 
-	// Metrics
-	if metrics := app.ModuleInstance("metrics").(gopi.Metrics); metrics != nil {
-		// Uptime
-		table.Append([]string{"uptime_host", fmt.Sprint(metrics.UptimeHost())})
-		table.Append([]string{"uptime_app", fmt.Sprint(metrics.UptimeApp())})
-
-		// Load Averages
-		loadav_1m, loadav_5m, loadav_15m := metrics.LoadAverage()
-		table.Append([]string{"load_average_1m", fmt.Sprintf("%.2f", loadav_1m)})
-		table.Append([]string{"load_average_5m", fmt.Sprintf("%.2f", loadav_5m)})
-		table.Append([]string{"load_average_15m", fmt.Sprintf("%.2f", loadav_15m)})
-
-		// Other metrics
-		for _, metric := range metrics.Metrics(gopi.METRIC_TYPE_NONE) {
-			table.Append([]string{metric.Name(), fmt.Sprintf("%v%v", metric.FloatValue(), metric.Unit())})
-		}
-	}
-
 	table.Render()
 
 	return nil
-}
-
-func main() {
-	// Create the configuration, load the gpio instance
-	config := gopi.NewAppConfig("hw", "metrics", "i2c", "gpio")
-
-	// Run the command line tool
-	os.Exit(gopi.CommandLineTool(config, mainLoop))
 }
