@@ -16,7 +16,6 @@ The gopi components provided by this repository are:
 | sys/hw         | linux,rpi,darwin | Hardware information, capabilities     | gopi.Hardware | 
 | sys/i2c        | linux            | I2C interface                          | gopi.I2C      |
 | sys/lirc       | linux            | Linux IR control (LIRC) interface      | gopi.LIRC     |
-| sys/metrics    | all              | Metrics gathering and reporting        | gopi.Metrics  |
 | sys/mmal       | rpi              | Multimedia Abstraction Layer           | hw.MMAL       |
 | sys/pwm        | rpi              | Pulse Wide Modulation (PWM) interface  | gopi.PWM      |
 | sys/spi        | linux            | SPI interface                          | gopi.SPI      |

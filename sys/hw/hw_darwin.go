@@ -13,6 +13,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"syscall"
+	"time"
 	"unsafe"
 
 	// Frameworks
@@ -26,6 +27,7 @@ import (
 	#cgo LDFLAGS: -framework CoreFoundation -framework IOKit
 	#include <sys/utsname.h>
 	#include <stdio.h>
+	#include <stdlib.h>
 	#include <CoreFoundation/CoreFoundation.h>
 	#include <IOKit/IOKitLib.h>
 	char* getserial() {
@@ -116,6 +118,29 @@ func (this *hardware) SerialNumber() string {
 // this to return the correct number of displays
 func (this *hardware) NumberOfDisplays() uint {
 	return 0
+}
+
+// Return Host Uptime
+func (this *hardware) UptimeHost() time.Duration {
+	tv := syscall.Timeval32{}
+
+	if err := sysctlbyname("kern.boottime", &tv); err != nil {
+		this.log.Error("<hw.darwin>UptimeHost: %v", err)
+		return 0
+	} else {
+		return time.Since(time.Unix(int64(tv.Sec), int64(tv.Usec)*1000))
+	}
+}
+
+// Return load averages
+func (this *hardware) LoadAverage() (float64, float64, float64) {
+	avg := []C.double{0, 0, 0}
+	if C.getloadavg(&avg[0], C.int(len(avg))) == C.int(-1) {
+		this.log.Error("<hw.darwin>LoadAverage: Unavailable")
+		return 0, 0, 0
+	} else {
+		return float64(avg[0]), float64(avg[1]), float64(avg[2])
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
