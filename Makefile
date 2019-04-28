@@ -17,7 +17,7 @@ linux: install-linux
 
 darwin: install-darwin
 	
-rpi: test-rpi test-dx test-freetype install-rpi
+rpi: test-rpi test-dx test-freetype install-rpi install-mmal
 
 install-darwin:
 	$(GOINSTALL) -tags "darwin" ./cmd/hw_list/...
