@@ -20,10 +20,14 @@ darwin: install-darwin
 rpi: test-rpi test-dx test-freetype install-rpi install-mmal
 
 install-darwin:
-	$(GOINSTALL) -tags "darwin" ./cmd/hw_list/...
+	$(GOINSTALL) -tags "darwin" $(GOFLAGS) ./cmd/hw_list/...
 
 install-linux:
-	$(GOINSTALL) -tags "linux" ./cmd/hw_list/...
+	$(GOINSTALL) -tags "linux" $(GOFLAGS) ./cmd/hw_list/...
+	$(GOINSTALL) -tags "linux" $(GOFLAGS) ./cmd/gpio_ctrl
+	$(GOINSTALL) -tags "linux" $(GOFLAGS) ./cmd/i2c_detect
+	$(GOINSTALL) -tags "linux" $(GOFLAGS) ./cmd/lirc_receive
+	$(GOINSTALL) -tags "linux" $(GOFLAGS) ./cmd/spi_ctrl
 
 install-rpi:
 	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/hw_list
