@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -27,16 +28,18 @@ import (
 // TYPES
 
 type LIRC struct {
-	// Device path
-	Device string
+	// Device paths
+	DeviceIn  string
+	DeviceOut string
 
 	// Filepoller
 	FilePoll filepoll.FilePollInterface
 }
 
 type lirc struct {
-	dev      *os.File
 	log      gopi.Logger
+	dev_in   *os.File
+	dev_out  *os.File
 	filepoll filepoll.FilePollInterface
 	lock     sync.Mutex
 
@@ -61,8 +64,9 @@ type lirc_event struct {
 // CONSTANTS
 
 const (
-	// LIRC_DEV is the default device path
-	LIRC_DEV = "/dev/lirc0"
+	// LIRC_DEV_IN & LIRC_DEV_OUT are the default device path
+	LIRC_DEV_OUT = "/dev/lirc0"
+	LIRC_DEV_IN  = "/dev/lirc1"
 	// LIRC_CARRIER_FREQUENCY is the default carrier frequency
 	LIRC_CARRIER_FREQUENCY = 38000
 	// LIRC_DUTY_CYCLE is the default duty cycle
@@ -106,12 +110,15 @@ const (
 
 // Open creates a new LIRC object, returns error if not possible
 func (config LIRC) Open(log gopi.Logger) (gopi.Driver, error) {
-	if config.Device == "" {
-		config.Device = LIRC_DEV
+	if config.DeviceIn == "" {
+		config.DeviceIn = LIRC_DEV_IN
+	}
+	if config.DeviceOut == "" {
+		config.DeviceOut = LIRC_DEV_OUT
 	}
 
 	// Log
-	log.Debug("<sys.hw.linux.LIRC.Open>{ device=%v }", config.Device)
+	log.Debug("<sys.hw.linux.LIRC.Open>{ device_in=%v device_out=%v }", strconv.Quote(config.DeviceIn), strconv.Quote(config.DeviceOut))
 
 	// create new driver
 	this := new(lirc)
@@ -124,16 +131,24 @@ func (config LIRC) Open(log gopi.Logger) (gopi.Driver, error) {
 		return nil, gopi.ErrBadParameter
 	}
 
-	// Open the device
-	if dev, err := os.OpenFile(config.Device, os.O_RDWR, 0); err != nil {
+	// Open the device for input
+	if dev_in, err := os.OpenFile(config.DeviceIn, os.O_RDONLY, 0); err != nil {
 		return nil, err
 	} else {
-		this.dev = dev
+		this.dev_in = dev_in
+	}
+	// Open the device for output
+	if dev_out, err := os.OpenFile(config.DeviceOut, os.O_WRONLY, 0); err != nil {
+		this.dev_in.Close()
+		return nil, err
+	} else {
+		this.dev_out = dev_out
 	}
 
 	// Get features
 	if features, err := this.getFeatures(); err != nil {
-		this.dev.Close()
+		this.dev_in.Close()
+		this.dev_out.Close()
 		return nil, err
 	} else {
 		this.features = features
@@ -141,15 +156,17 @@ func (config LIRC) Open(log gopi.Logger) (gopi.Driver, error) {
 
 	// Get modes
 	if rcv_mode, err := this.getRcvMode(); err != nil {
-		this.dev.Close()
+		this.dev_in.Close()
+		this.dev_out.Close()
 		return nil, err
 	} else {
 		this.rcv_mode = rcv_mode
 	}
 
 	// Start watching
-	if err := this.filepoll.Watch(this.dev, filepoll.FILEPOLL_MODE_READ, this.lircReceive); err != nil {
-		this.dev.Close()
+	if err := this.filepoll.Watch(this.dev_in, filepoll.FILEPOLL_MODE_READ, this.lircReceive); err != nil {
+		this.dev_in.Close()
+		this.dev_out.Close()
 		return nil, err
 	}
 
@@ -169,15 +186,20 @@ func (this *lirc) Close() error {
 	this.Publisher.Close()
 
 	// Unwatch device
-	if err := this.filepoll.Unwatch(this.dev); err != nil {
+	if err := this.filepoll.Unwatch(this.dev_in); err != nil {
 		this.log.Warn("Unwatch: %v", err)
 	}
 
-	// Close device
-	if err := this.dev.Close(); err != nil {
+	// Close devices
+	if err := this.dev_in.Close(); err != nil {
 		return err
 	} else {
-		this.dev = nil
+		this.dev_in = nil
+	}
+	if err := this.dev_out.Close(); err != nil {
+		return err
+	} else {
+		this.dev_out = nil
 	}
 
 	// Blank out
@@ -473,7 +495,7 @@ func (this *lirc) PulseSend(values []uint32) error {
 		}
 	}
 	// Send data
-	if err := binary.Write(this.dev, binary.LittleEndian, values); err != nil {
+	if err := binary.Write(this.dev_out, binary.LittleEndian, values); err != nil {
 		return err
 	}
 	// Return success
