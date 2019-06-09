@@ -25,13 +25,16 @@ func init() {
 		Type:     gopi.MODULE_TYPE_LIRC,
 		Requires: []string{"hw/filepoll"},
 		Config: func(config *gopi.AppConfig) {
-			config.AppFlags.FlagString("lirc.device", "", "LIRC device")
+			config.AppFlags.FlagString("lirc.in", "", "LIRC input device")
+			config.AppFlags.FlagString("lirc.out", "", "LIRC output device")
 		},
 		New: func(app *gopi.AppInstance) (gopi.Driver, error) {
-			device, _ := app.AppFlags.GetString("lirc.device")
+			device_in, _ := app.AppFlags.GetString("lirc.in")
+			device_out, _ := app.AppFlags.GetString("lirc.out")
 			return gopi.Open(LIRC{
-				Device:   device,
-				FilePoll: app.ModuleInstance("hw/filepoll").(filepoll.FilePollInterface),
+				DeviceIn:  device_in,
+				DeviceOut: device_out,
+				FilePoll:  app.ModuleInstance("hw/filepoll").(filepoll.FilePollInterface),
 			}, app.Logger)
 		},
 	})
