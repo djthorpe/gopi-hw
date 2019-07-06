@@ -43,19 +43,22 @@ const (
 )
 
 const (
-	RPI_MODEL_A                Model = (0x00 << 4)
-	RPI_MODEL_B                Model = (0x01 << 4)
-	RPI_MODEL_A_PLUS           Model = (0x02 << 4)
-	RPI_MODEL_B_PLUS           Model = (0x03 << 4)
-	RPI_MODEL_B_2              Model = (0x04 << 4)
-	RPI_MODEL_ALPHA            Model = (0x05 << 4)
-	RPI_MODEL_COMPUTE_MODULE   Model = (0x06 << 4)
-	RPI_MODEL_B_3              Model = (0x08 << 4)
-	RPI_MODEL_ZERO             Model = (0x09 << 4)
-	RPI_MODEL_COMPUTE_MODULE_3 Model = (0x0A << 4)
-	RPI_MODEL_ZERO_W           Model = (0x0C << 4)
-	RPI_MODEL_B_3PLUS          Model = (0x0D << 4)
-	RPI_MODEL_UNKNOWN          Model = (0x0F << 4)
+	RPI_MODEL_A                    Model = (0x00 << 4)
+	RPI_MODEL_B                    Model = (0x01 << 4)
+	RPI_MODEL_A_PLUS               Model = (0x02 << 4)
+	RPI_MODEL_B_PLUS               Model = (0x03 << 4)
+	RPI_MODEL_B_2                  Model = (0x04 << 4)
+	RPI_MODEL_ALPHA                Model = (0x05 << 4)
+	RPI_MODEL_COMPUTE_MODULE       Model = (0x06 << 4)
+	RPI_MODEL_B_3                  Model = (0x08 << 4)
+	RPI_MODEL_ZERO                 Model = (0x09 << 4)
+	RPI_MODEL_COMPUTE_MODULE_3     Model = (0x0A << 4)
+	RPI_MODEL_ZERO_W               Model = (0x0C << 4)
+	RPI_MODEL_B_3PLUS              Model = (0x0D << 4)
+	RPI_MODEL_A_3PLUS              Model = (0x0E << 4)
+	RPI_MODEL_UNKNOWN              Model = (0x0F << 4)
+	RPI_MODEL_COMPUTE_MODULE_3PLUS Model = (0x10 << 4)
+	RPI_MODEL_B_4                  Model = (0x11 << 4)
 )
 
 const (
@@ -63,6 +66,7 @@ const (
 	RPI_PROCESSOR_BCM2835 Processor = (0 << 12)
 	RPI_PROCESSOR_BCM2836 Processor = (1 << 12)
 	RPI_PROCESSOR_BCM2837 Processor = (2 << 12)
+	RPI_PROCESSOR_BCM2838 Processor = (3 << 12)
 )
 
 const (
@@ -196,6 +200,12 @@ func (m Model) String() string {
 		return "RPI_MODEL_ZERO_W"
 	case RPI_MODEL_B_3PLUS:
 		return "RPI_MODEL_B_3PLUS"
+	case RPI_MODEL_A_3PLUS:
+		return "RPI_MODEL_A_3PLUS"
+	case RPI_MODEL_COMPUTE_MODULE_3PLUS:
+		return "RPI_MODEL_COMPUTE_MODULE_3PLUS"
+	case RPI_MODEL_B_4:
+		return "RPI_MODEL_B_4"
 	default:
 		return fmt.Sprintf("[?? Unknown Model value 0x%02X]", uint32(m))
 	}
@@ -209,6 +219,8 @@ func (p Processor) String() string {
 		return "RPI_PROCESSOR_BCM2836"
 	case RPI_PROCESSOR_BCM2837:
 		return "RPI_PROCESSOR_BCM2837"
+	case RPI_PROCESSOR_BCM2838:
+		return "RPI_PROCESSOR_BCM2838"
 	default:
 		return "[?? Unknown Processor value]"
 	}

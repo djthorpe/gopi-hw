@@ -19,7 +19,7 @@ import (
 
 func main() {
 	// Create the configuration, load the gpio instance
-	config := gopi.NewAppConfig("hw", "i2c", "gpio", "lirc", "spi")
+	config := gopi.NewAppConfig("hw")
 
 	// Run the command line tool
 	os.Exit(gopi.CommandLineTool(config, mainLoop))
