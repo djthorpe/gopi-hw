@@ -24,15 +24,12 @@ import (
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func eventLoop(app *gopi.AppInstance, done <-chan struct{}) error {
-	if app.LIRC == nil {
-		return errors.New("Missing LIRC module")
-	}
-
+func EventLoop(app *gopi.AppInstance, start chan<- struct{}, stop <-chan struct{}) error {
 	messages := app.LIRC.Subscribe()
-
 	fmt.Printf("%20s %12s\n", "Type", "Value")
 	fmt.Printf("%20s %12s\n", "--------------------", "------------")
+
+	start <- gopi.DONE
 
 FOR_LOOP:
 	for {
@@ -43,7 +40,7 @@ FOR_LOOP:
 			} else {
 				fmt.Println(evt)
 			}
-		case <-done:
+		case <-stop:
 			break FOR_LOOP
 		}
 	}
@@ -53,7 +50,7 @@ FOR_LOOP:
 	return nil
 }
 
-func mainLoop(app *gopi.AppInstance, done chan<- struct{}) error {
+func Main(app *gopi.AppInstance, done chan<- struct{}) error {
 
 	if app.LIRC == nil {
 		return errors.New("Missing LIRC module")
@@ -62,6 +59,13 @@ func mainLoop(app *gopi.AppInstance, done chan<- struct{}) error {
 	// Set receive mode to be MODE2
 	// Ref: https://linuxtv.org/downloads/v4l-dvb-apis/uapi/rc/lirc-dev-intro.html#lirc-modes
 	if err := app.LIRC.SetRcvMode(gopi.LIRC_MODE_MODE2); err != nil {
+		return err
+	}
+
+	// Set timeout value to 10ms
+	if err := app.LIRC.SetRcvTimeout(10 * 1000); err != nil {
+		return err
+	} else if err := app.LIRC.SetRcvTimeoutReports(true); err != nil {
 		return err
 	}
 
@@ -80,5 +84,5 @@ func main() {
 	config := gopi.NewAppConfig("lirc")
 
 	// Run the command line tool
-	os.Exit(gopi.CommandLineTool(config, mainLoop, eventLoop))
+	os.Exit(gopi.CommandLineTool2(config, Main, EventLoop))
 }
