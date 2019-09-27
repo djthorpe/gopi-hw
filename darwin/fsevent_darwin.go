@@ -8,7 +8,7 @@ package darwin
 
 extern void fsevtCallback(FSEventStreamRef p0, uintptr_t info, size_t p1, char** p2, FSEventStreamEventFlags* p3, FSEventStreamEventId* p4);
 
-static FSEventStreamRef FSEventStreamCreate_(FSEventStreamContext* context, uintptr_t info, CFArrayRef paths, FSEventStreamEventId since, CFTimeInterval latency,FSEventStreamCreateFlags flags) {
+static FSEventStreamRef FSEventStreamCreate_(FSEventStreamContext* context, uintptr_t info, CFArrayRef paths, FSEventStreamEventId since, CFTimeInterval latency,FSEventStreamCreateFlags flags) {	
 	context->info = (void* )info;
 	return FSEventStreamCreate(NULL,(FSEventStreamCallback)fsevtCallback, context, paths, since, latency, flags);
 }
@@ -146,9 +146,13 @@ func FlushEventStream(stream FSEventStream, sync bool) {
 	}
 }
 
-func StartEventStreamInRunloop(stream FSEventStream, runloop CFRunLoop) {
+func StartEventStreamInRunloop(stream FSEventStream, runloop CFRunLoop) bool {
 	C.FSEventStreamScheduleWithRunLoop(stream, C.CFRunLoopRef(runloop), C.kCFRunLoopDefaultMode)
-	C.FSEventStreamStart(stream)
+	if success := C.FSEventStreamStart(stream); success == C.Boolean(0) {
+		return false
+	} else {
+		return true
+	}
 }
 
 func StopEventStreamInRunLoop(stream FSEventStream, runloop CFRunLoop) {
