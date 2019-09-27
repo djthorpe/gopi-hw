@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 	"unsafe"
+	"sync"
 
 	// Frameworks
 	"github.com/djthorpe/gopi"
@@ -87,12 +88,15 @@ const (
 
 var (
 	callback_map = make(map[uintptr]FSCallback, 1)
+	callback_lock sync.Mutex
 )
 
 ///////////////////////////////////////////////////////////////////////////////
 // CALLBACKS
 
 func SetEventCallback(userInfo uintptr, callback FSCallback) {
+	callback_lock.Lock()
+	defer callback_lock.Unlock()
 	if callback == nil {
 		delete(callback_map, userInfo)
 	} else {
