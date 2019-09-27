@@ -15,12 +15,13 @@ GOFLAGS = -ldflags "-s -w $(GOLDFLAGS)"
 
 linux: install-linux
 
-darwin: install-darwin
+darwin: test-darwin install-darwin
 	
 rpi: test-rpi test-dx test-freetype install-rpi install-mmal
 
 install-darwin:
 	$(GOINSTALL) -tags "darwin" $(GOFLAGS) ./cmd/hw_list/...
+	$(GOINSTALL) -tags "darwin" $(GOFLAGS) ./cmd/fsnotify/...
 
 install-linux:
 	$(GOINSTALL) -tags "linux" $(GOFLAGS) ./cmd/hw_list/...
@@ -41,6 +42,9 @@ install-mmal:
 	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/mmal_camera_preview
 	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/mmal_encode_image
 	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOINSTALL) -tags "rpi" $(GOFLAGS) ./cmd/mmal_video_preview
+
+test-darwin:
+	$(GOTEST) -tags "darwin"  -v ./darwin
 
 test-rpi:
 	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(GOTEST) -tags "rpi"  -v ./rpi

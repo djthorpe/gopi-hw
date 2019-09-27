@@ -9,16 +9,17 @@ Linux support, Raspbian GNU/Linux v9 has been tested and for Mac support.
 
 The gopi components provided by this repository are:
 
-| Component Path | Plaform/Tag      | Description                            | Conforms to   |
-| -------------- | ---------------- | -------------------------------------- |-------------- |
-| sys/filepoll   | linux            | Watch for changes to files and folders | 
-| sys/gpio       | linux,rpi        | General Purpose Hardware Input/Output  | gopi.GPIO     |
-| sys/hw         | linux,rpi,darwin | Hardware information, capabilities     | gopi.Hardware | 
-| sys/i2c        | linux            | I2C interface                          | gopi.I2C      |
-| sys/lirc       | linux            | Linux IR control (LIRC) interface      | gopi.LIRC     |
-| sys/mmal       | rpi              | Multimedia Abstraction Layer           | hw.MMAL       |
-| sys/pwm        | rpi              | Pulse Wide Modulation (PWM) interface  | gopi.PWM      |
-| sys/spi        | linux            | SPI interface                          | gopi.SPI      |
+| Component Path | Plaform/Tag      | Description                             | Conforms to   |
+| -------------- | ---------------- | --------------------------------------- |-------------- |
+| sys/filepoll   | linux            | Watch for read & write changes to files |               |
+| sys/fsnotify   | darwin           | Watch for changes to files and folders  | hw.FSNotify   |
+| sys/gpio       | linux,rpi        | General Purpose Hardware Input/Output   | gopi.GPIO     |
+| sys/hw         | linux,rpi,darwin | Hardware information, capabilities      | gopi.Hardware | 
+| sys/i2c        | linux            | I2C interface                           | gopi.I2C      |
+| sys/lirc       | linux            | Linux IR control (LIRC) interface       | gopi.LIRC     |
+| sys/mmal       | rpi              | Multimedia Abstraction Layer            | hw.MMAL       |
+| sys/pwm        | rpi              | Pulse Wide Modulation (PWM) interface   | gopi.PWM      |
+| sys/spi        | linux            | SPI interface                           | gopi.SPI      |
 
 ## Bindings
 
@@ -61,6 +62,7 @@ The resulting binaries are as follows. Use the `-help` flag to see the different
   * `mmal_camera_preview` Preview the camera output on the screen
   * `mmal_encode_image` Demonstrates image decoding and encoding using the GPU
   * `mmal_video_preview` Demonstrates playback of a H264 video on the screen using the GPU
+  * `fsnotify` List file & folder changes under one or more folders
 
 ## Construction Ahead
 
