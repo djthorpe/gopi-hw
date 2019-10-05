@@ -39,6 +39,7 @@ type fsnotify_impl struct {
 type fsevent_impl struct {
 	ts      time.Time
 	root    string
+	stat    os.FileInfo
 	fsevent *mac.FSEvent
 }
 
@@ -151,8 +152,10 @@ func (this *fsnotify_impl) emit(evt *mac.FSEvent) {
 	if rootPath := this.path_for_userinfo(evt.UserInfo); rootPath == "" {
 		// Ignore when we don't know the rootPath
 		return
-	} else {
-		this.callback(&fsevent_impl{time.Now(), rootPath, evt})
+	} else if evt.Flags&mac.FS_STREAM_FLAG_ITEM_REMOVED != 0 {
+		this.callback(&fsevent_impl{time.Now(), rootPath, nil, evt})
+	} else if stat, err := os.Stat(evt.Path); err == nil {
+		this.callback(&fsevent_impl{time.Now(), rootPath, stat, evt})
 	}
 }
 
@@ -169,22 +172,23 @@ func (*fsevent_impl) Source() gopi.Driver {
 
 func (this *fsevent_impl) Flags() hw.FSFlag {
 	f := hw.FS_FLAG_NONE
+
 	if this.fsevent.Flags&mac.FS_STREAM_FLAG_ITEM_REMOVED != 0 {
 		f |= hw.FS_FLAG_DELETED
+	} else if this.fsevent.Flags&mac.FS_STREAM_FLAG_ITEM_CREATED != 0 {
+		f |= hw.FS_FLAG_CREATED
+	} else if this.fsevent.Flags&mac.FS_STREAM_FLAG_ITEM_MODIFIED != 0 {
+		f |= hw.FS_FLAG_MODIFIED
 	} else if this.fsevent.Flags&mac.FS_STREAM_FLAG_ITEM_RENAMED != 0 {
 		f |= hw.FS_FLAG_RENAMED
-	} else if this.fsevent.Flags&mac.FS_STREAM_FLAG_ITEM_INODEMETAMOD != 0 {
-		f |= hw.FS_FLAG_CHMOD
-	} else if this.fsevent.Flags&mac.FS_STREAM_FLAG_ITEM_XATTRMOD != 0 {
+	}
+
+	if this.fsevent.Flags&mac.FS_STREAM_FLAG_ITEM_INODEMETAMOD != 0 {
 		f |= hw.FS_FLAG_CHMOD
 	} else if this.fsevent.Flags&mac.FS_STREAM_FLAG_ITEM_CHANGEOWNER != 0 {
 		f |= hw.FS_FLAG_CHMOD
 	} else if this.fsevent.Flags&mac.FS_STREAM_FLAG_ITEM_FINDERINFOMOD != 0 {
 		f |= hw.FS_FLAG_CHMOD
-	} else if this.fsevent.Flags&mac.FS_STREAM_FLAG_ITEM_MODIFIED != 0 {
-		f |= hw.FS_FLAG_MODIFIED
-	} else if this.fsevent.Flags&mac.FS_STREAM_FLAG_ITEM_CREATED != 0 {
-		f |= hw.FS_FLAG_CREATED
 	}
 
 	if this.fsevent.Flags&mac.FS_STREAM_FLAG_ITEM_ISDIR != 0 {
@@ -194,6 +198,8 @@ func (this *fsevent_impl) Flags() hw.FSFlag {
 	} else if this.fsevent.Flags&mac.FS_STREAM_FLAG_ITEM_ISSYMLINK != 0 {
 		f |= hw.FS_FLAG_ISSYMLINK
 	}
+
+	//fmt.Printf("%v %08X %v => %v\n", filepath.Base(this.fsevent.Path), uint32(this.fsevent.Flags), this.fsevent.Flags, f)
 	return f
 }
 
