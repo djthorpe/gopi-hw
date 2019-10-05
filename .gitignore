@@ -8,3 +8,5 @@
 go.sum
 *.pb.go
 .vscode
+.DS_Store
+._*
