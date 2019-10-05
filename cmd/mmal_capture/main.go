@@ -11,7 +11,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	// Frameworks
@@ -30,14 +29,17 @@ func Main(app *gopi.AppInstance, done chan<- struct{}) error {
 
 	if mmal := app.ModuleInstance("hw/mmal").(hw.MMAL); mmal == nil {
 		return errors.New("Missing MMAL module")
-	} else {
-		// Display camera preview until interrupted
-		fmt.Println("Press CTRL+C to exit")
-		app.WaitForSignal()
+	} else if capture, err := NewApp(mmal, app.Logger); err != nil {
+		return err
+	} else if err := capture.Setup(app.AppFlags); err != nil {
+		return err
+	} else if err := capture.CameraInfo(); err != nil {
+		return err
+	} else if err := capture.Capture(); err != nil {
+		return err
 	}
 
-	// Finish gracefully
-	done <- gopi.DONE
+	// Success
 	return nil
 }
 
@@ -46,6 +48,10 @@ func Main(app *gopi.AppInstance, done chan<- struct{}) error {
 func main() {
 	// Create the configuration, load the MMAL instance
 	config := gopi.NewAppConfig("hw/mmal")
+
+	// Command-line parameters
+	config.AppFlags.FlagUint("rotate", 0, "Camera rotation 0-360")
+	config.AppFlags.FlagUint("camera", 0, "Camera number")
 
 	// Run the command line tool
 	os.Exit(gopi.CommandLineTool2(config, Main))
