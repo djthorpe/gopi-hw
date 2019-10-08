@@ -63,6 +63,31 @@ func ApplyConfig(camera hw.Camera, display gopi.Display, app *gopi.AppInstance) 
 	return config, nil
 }
 
+func Data(app *gopi.AppInstance, start chan<- struct{}, stop <-chan struct{}) error {
+	// Subscribe to camera events
+	if camera := app.ModuleInstance("media/camera").(hw.Camera); camera == nil {
+		return gopi.ErrAppError
+	} else {
+		messages := camera.Subscribe()
+
+		// Start processing
+		start <- gopi.DONE
+	FOR_LOOP:
+		for {
+			select {
+			case evt := <-messages:
+				fmt.Println(evt)
+			case <-stop:
+				break FOR_LOOP
+			}
+		}
+		camera.Unsubscribe(messages)
+	}
+
+	// Success
+	return nil
+}
+
 func Main(app *gopi.AppInstance, done chan<- struct{}) error {
 	camera := app.ModuleInstance("media/camera").(hw.Camera)
 	display := app.Display
@@ -82,13 +107,17 @@ func Main(app *gopi.AppInstance, done chan<- struct{}) error {
 			}
 		}
 		table.Render()
+
+		fmt.Println("image=", camera.SupportedImageEncodings())
+		fmt.Println("video=", camera.SupportedVideoEncodings())
 	}
 
 	// Start preview
 	if preview, _ := app.AppFlags.GetBool("preview"); preview {
-		if err := camera.Preview(); err != nil {
+		if err := camera.Preview(true); err != nil {
 			return err
 		}
+		defer camera.Preview(false)
 	}
 
 	// Perform image capture
@@ -96,7 +125,7 @@ func Main(app *gopi.AppInstance, done chan<- struct{}) error {
 		return err
 	}
 
-	// Wait for CTRL+C
+	// Wait for CTRL+C if preview mode
 	fmt.Println("Press CTRL+C to exit")
 	app.WaitForSignal()
 
@@ -115,5 +144,5 @@ func main() {
 	config.AppFlags.FlagBool("preview", false, "Display capture preview")
 
 	// Run the command line tool
-	os.Exit(gopi.CommandLineTool2(config, Main))
+	os.Exit(gopi.CommandLineTool2(config, Main, Data))
 }

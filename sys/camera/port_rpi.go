@@ -19,7 +19,7 @@ import (
 
 const (
 	CAMERA_PREVIEW_OUTPORT = 0
-	CAMERA_VIDEO_OUTPORT   = 2
+	CAMERA_VIDEO_OUTPORT   = 1
 	CAMERA_IMAGE_OUTPORT   = 2
 	PREVIEW_INPORT         = 0
 	ENCODER_INPORT         = 0
@@ -48,10 +48,18 @@ func (this *camera) PreviewInPort() hw.MMALPort {
 	return this.renderer.Inputs()[PREVIEW_INPORT]
 }
 
-func (this *camera) EncoderInPort() hw.MMALPort {
-	return this.encoder.Inputs()[ENCODER_INPORT]
+func (this *camera) ImageEncoderInPort() hw.MMALPort {
+	return this.image_encoder.Inputs()[ENCODER_INPORT]
 }
 
-func (this *camera) EncoderOutPort() hw.MMALPort {
-	return this.encoder.Outputs()[ENCODER_OUTPORT]
+func (this *camera) ImageEncoderOutPort() hw.MMALPort {
+	return this.image_encoder.Outputs()[ENCODER_OUTPORT]
+}
+
+func (this *camera) VideoEncoderInPort() hw.MMALPort {
+	return this.video_encoder.Inputs()[ENCODER_INPORT]
+}
+
+func (this *camera) VideoEncoderOutPort() hw.MMALPort {
+	return this.video_encoder.Outputs()[ENCODER_OUTPORT]
 }
