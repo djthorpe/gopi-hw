@@ -74,6 +74,8 @@ type CameraConfig struct {
 	VideoRotation              int32
 	ImageFormatEncoding        MMALEncodingType
 	ImageFormatEncodingVariant MMALEncodingType
+	VideoFormatEncoding        MMALEncodingType
+	VideoFormatEncodingVariant MMALEncodingType
 	ImageFrameSize             gopi.Size
 	PreviewFrameSize           gopi.Size
 	ImageJPEGQuality           uint32
@@ -107,6 +109,7 @@ const (
 	FLAG_PREVIEW_ROTATION
 	FLAG_VIDEO_ROTATION
 	FLAG_IMAGE_ENCODING_FORMAT
+	FLAG_VIDEO_ENCODING_FORMAT
 	FLAG_IMAGE_FRAMESIZE
 	FLAG_PREVIEW_FRAMESIZE
 	FLAG_IMAGE_ENCODING_JPEGQUALITY

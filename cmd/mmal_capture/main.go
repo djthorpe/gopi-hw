@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 
 	// Frameworks
@@ -28,6 +29,10 @@ import (
 	_ "github.com/djthorpe/gopi/sys/logger"
 )
 
+var (
+	OutputFilename string
+)
+
 ////////////////////////////////////////////////////////////////////////////////
 
 func ApplyConfig(camera hw.Camera, display gopi.Display, app *gopi.AppInstance) (hw.CameraConfig, error) {
@@ -35,6 +40,22 @@ func ApplyConfig(camera hw.Camera, display gopi.Display, app *gopi.AppInstance) 
 	config, err := camera.CameraConfig()
 	if err != nil {
 		return config, err
+	}
+
+	args := app.AppFlags.Args()
+	if len(args) != 1 {
+		return config, gopi.ErrHelp
+	} else {
+		OutputFilename = args[0]
+	}
+	if format, encoding := hw.MMALEncodingFormatForExt(filepath.Ext(args[0])); format == hw.MMAL_FORMAT_UNKNOWN {
+		return config, errors.New("Output is not image or video")
+	} else if format == hw.MMAL_FORMAT_IMAGE {
+		config.ImageFormatEncoding = encoding
+		config.Flags |= hw.FLAG_IMAGE_ENCODING_FORMAT
+	} else if format == hw.MMAL_FORMAT_VIDEO {
+		config.VideoFormatEncoding = encoding
+		config.Flags |= hw.FLAG_VIDEO_ENCODING_FORMAT
 	}
 
 	// Set rotation
@@ -64,10 +85,13 @@ func ApplyConfig(camera hw.Camera, display gopi.Display, app *gopi.AppInstance) 
 }
 
 func Data(app *gopi.AppInstance, start chan<- struct{}, stop <-chan struct{}) error {
-	// Subscribe to camera events
-	if camera := app.ModuleInstance("media/camera").(hw.Camera); camera == nil {
+	// Output file
+	if fh, err := os.Create(OutputFilename); err != nil {
+		return err
+	} else if camera := app.ModuleInstance("media/camera").(hw.Camera); camera == nil {
 		return gopi.ErrAppError
 	} else {
+		defer fh.Close()
 		messages := camera.Subscribe()
 
 		// Start processing
@@ -76,7 +100,9 @@ func Data(app *gopi.AppInstance, start chan<- struct{}, stop <-chan struct{}) er
 		for {
 			select {
 			case evt := <-messages:
-				fmt.Println(evt)
+				if evt_, ok := evt.(hw.CameraEvent); ok {
+					fh.Write(evt_.Data())
+				}
 			case <-stop:
 				break FOR_LOOP
 			}

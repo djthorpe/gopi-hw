@@ -322,6 +322,11 @@ const (
 	MMAL_PARAMETER_SEEK_FLAG_FORWARD = 0x02
 )
 
+const (
+	// Up to 20 supported encodings in array
+	MMAL_PARAMETER_SUPPORTED_ENCODINGS_ARRAY_SIZE = 20 * C.sizeof_uint32_t
+)
+
 ////////////////////////////////////////////////////////////////////////////////
 // STRINGIFY
 

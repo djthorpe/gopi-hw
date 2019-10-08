@@ -22,7 +22,7 @@ import (
 // MMAL_PARAMETER_SUPPORTED_ENCODINGS
 
 func (this *port) SupportedEncodings() ([]hw.MMALEncodingType, error) {
-	if param, err := rpi.MMALPortParameterAllocGet(this.handle, rpi.MMAL_PARAMETER_GROUP_COMMON|rpi.MMAL_PARAMETER_SUPPORTED_ENCODINGS, 0); err != nil {
+	if param, err := rpi.MMALPortParameterAllocGet(this.handle, rpi.MMAL_PARAMETER_GROUP_COMMON|rpi.MMAL_PARAMETER_SUPPORTED_ENCODINGS, rpi.MMAL_PARAMETER_SUPPORTED_ENCODINGS_ARRAY_SIZE); err != nil {
 		return nil, err
 	} else {
 		defer rpi.MMALPortParameterAllocFree(param)

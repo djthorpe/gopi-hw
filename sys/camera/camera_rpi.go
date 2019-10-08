@@ -240,8 +240,9 @@ func (this *camera) CameraConfig() (hw.CameraConfig, error) {
 		config.VideoRotation = rotation
 	}
 
-	// Encoder Image Encoding format
+	// Encoding formats
 	config.ImageFormatEncoding, config.ImageFormatEncodingVariant = this.ImageEncoderOutPort().VideoFormat().Encoding()
+	config.VideoFormatEncoding, config.VideoFormatEncodingVariant = this.VideoEncoderOutPort().VideoFormat().Encoding()
 
 	// Camera Image Frame size
 	if format := this.CameraImageOutPort().VideoFormat(); format != nil {
@@ -287,8 +288,14 @@ func (this *camera) SetCameraConfig(config hw.CameraConfig) error {
 		}
 	}
 	if config.HasFlags(hw.FLAG_IMAGE_ENCODING_FORMAT) {
-		this.CameraImageOutPort().VideoFormat().SetEncodingVariant(config.ImageFormatEncoding, config.ImageFormatEncodingVariant)
-		if err := this.CameraImageOutPort().CommitFormatChange(); err != nil {
+		this.ImageEncoderOutPort().VideoFormat().SetEncodingVariant(config.ImageFormatEncoding, config.ImageFormatEncodingVariant)
+		if err := this.ImageEncoderOutPort().CommitFormatChange(); err != nil {
+			return err
+		}
+	}
+	if config.HasFlags(hw.FLAG_VIDEO_ENCODING_FORMAT) {
+		this.VideoEncoderOutPort().VideoFormat().SetEncodingVariant(config.VideoFormatEncoding, config.VideoFormatEncodingVariant)
+		if err := this.VideoEncoderOutPort().CommitFormatChange(); err != nil {
 			return err
 		}
 	}

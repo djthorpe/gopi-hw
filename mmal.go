@@ -474,7 +474,8 @@ const (
 	MMAL_FORMAT_AUDIO
 	MMAL_FORMAT_VIDEO
 	MMAL_FORMAT_SUBPICTURE
-	MMAL_FORMAT_MAX = MMAL_FORMAT_SUBPICTURE
+	MMAL_FORMAT_IMAGE
+	MMAL_FORMAT_MAX = MMAL_FORMAT_IMAGE
 )
 
 const (
@@ -718,6 +719,36 @@ var (
 )
 
 ////////////////////////////////////////////////////////////////////////////////
+// PUBLIC METHODS
+
+// MMALEncodingFormatForExt returns the MMALFormatType and MMALEncoding for
+// a file extension or zero otherwise
+func MMALEncodingFormatForExt(ext string) (MMALFormatType, MMALEncodingType) {
+	switch strings.Trim(strings.ToLower(ext), ".") {
+	case "h264":
+		return MMAL_FORMAT_VIDEO, MMAL_ENCODING_H264
+	case "h263":
+		return MMAL_FORMAT_VIDEO, MMAL_ENCODING_H263
+	case "mjpeg":
+		return MMAL_FORMAT_VIDEO, MMAL_ENCODING_MJPEG
+	case "jpeg", "jpg":
+		return MMAL_FORMAT_IMAGE, MMAL_ENCODING_JPEG
+	case "gif":
+		return MMAL_FORMAT_IMAGE, MMAL_ENCODING_GIF
+	case "png":
+		return MMAL_FORMAT_IMAGE, MMAL_ENCODING_PNG
+	case "ppm":
+		return MMAL_FORMAT_IMAGE, MMAL_ENCODING_PPM
+	case "tga":
+		return MMAL_FORMAT_IMAGE, MMAL_ENCODING_TGA
+	case "bmp":
+		return MMAL_FORMAT_IMAGE, MMAL_ENCODING_BMP
+	default:
+		return MMAL_FORMAT_UNKNOWN, 0
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // CONTROL EVENTS
 
 var (
@@ -763,6 +794,8 @@ func (t MMALFormatType) String() string {
 		return "MMAL_FORMAT_VIDEO"
 	case MMAL_FORMAT_SUBPICTURE:
 		return "MMAL_FORMAT_SUBPICTURE"
+	case MMAL_FORMAT_IMAGE:
+		return "MMAL_FORMAT_IMAGE"
 	default:
 		return "[?? Unknown MMALFormatType value]"
 	}
